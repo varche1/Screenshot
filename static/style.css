@@ -1,0 +1,45 @@
+.site-add    { background-image: url(/static/img/world_add.png); }
+.site-edit   { background-image: url(/static/img/world_edit.png); }
+.site-delete { background-image: url(/static/img/world_delete.png); }
+
+.page-add    { background-image: url(/static/img/page_add.png); }
+.page-edit   { background-image: url(/static/img/page_edit.png); }
+.page-delete { background-image: url(/static/img/page_delete.png); }
+
+.shots-filter { background-image: url(/static/img/filter.png); }
+.shots-make   { background-image: url(/static/img/images.png); }
+
+.browser    { background: no-repeat left center; }
+
+.browser-ff { background-image: url(/static/img/firefox.png); }
+.browser-ie { background-image: url(/static/img/ie.png); }
+.browser-op { background-image: url(/static/img/opera.png); }
+.browser-ch { background-image: url(/static/img/chrome.png); }
+.browser-sf { background-image: url(/static/img/safari.png); }
+
+.screenshot {
+    width: 102px;
+    height: 122px;
+    float: left;
+    margin: 3px;
+    text-align: center;
+}
+.screenshot span {
+    display: block;
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+.screenshot .browser {
+    padding-left: 18px;
+}
+.screenshot a {
+    display: block;
+}
+.screenshot a img {
+    border: 1px solid #ccc;
+}
+
+/* FIX JS-CORE */
+.x-form-item {
+    /*margin: 0;*/
+}

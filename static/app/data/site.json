@@ -1,0 +1,8 @@
+{
+    'success': true,    
+    'results': [
+        {'url': '1', 'title': 'Led Zeppelin'}, 
+        {'url': '2', 'title': 'The Rolling Stones'}, 
+        {'url': '3', 'title': 'Daft Punk'}
+    ]
+}
