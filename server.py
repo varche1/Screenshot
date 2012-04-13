@@ -192,7 +192,7 @@ class TornadoDaemon(Daemon):
         tornado.ioloop.IOLoop.instance().start()
 
 if __name__ == "__main__":
-    
+
     pid_file = os.path.join(APP_DIR, 'tornado.pid')
     log_file = os.path.join(APP_DIR, 'logs', 'tornado.log')    
 
@@ -211,5 +211,4 @@ if __name__ == "__main__":
     else:
         print "usage: %s start|stop|restart" % sys.argv[0]
         sys.exit(2)
-    
     

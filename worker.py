@@ -1,6 +1,8 @@
-import StringIO
-from base64 import decodestring
+# -*- coding: utf-8 -*-
+import os
+
 from urlparse import urlparse
+import random
 
 from selenium import selenium
 from selenium import webdriver
@@ -10,25 +12,38 @@ import gridfs
 
 from PIL import Image
 
+from celery.task import task
+from celery.execute import send_task
+from celery.task.sets import subtask
+from celery.task.sets import TaskSet
 
+@task
 def getScreen(rowId, pageUrl, browser, resolution):
-    
-    image = getScreenImage(pageUrl, browser, resolution)
-    if (image is None):
+    fileName = getScreenImage(pageUrl, browser, resolution)
+    if (fileName is None):
         return
     
-    thumbImageData  = ResizeImage(image, (100, 100))
-    normalImageData = ResizeImage(image, (1000, 0))
-
-    db = pymongo.Connection('localhost', 27017).screener
+    thumbImageData  = ResizeImage(fileName, (100, 100))
+    normalImageData = ResizeImage(fileName, (1000, 0))
+    
+    db = pymongo.Connection('176.9.24.81', 27017).screener
     fs = gridfs.GridFS(db)
     
     fs.put(thumbImageData,  filename=rowId+"thumb")
     fs.put(normalImageData, filename=rowId+"normal")
-
+    
+    # remove temp file
+    os.remove(fileName);
+    
+    # answer
+    result = rowId
+    
+    send_task("server.response_action", [result], queue="response_q")
+    
+    return "COMPLITE - getScreen"
 
 def getScreenImage(url, browser, resolution):
-    url = urlparce(url)
+    url = urlparse(url)
     if not (url.netloc and url.scheme):
         return None
     
@@ -57,23 +72,28 @@ def getScreenImage(url, browser, resolution):
     
     driver.set_window_size(res[0], res[1])
     driver.get(url.geturl())
-    imgB64 = driver.get_screenshot_as_base64()
+    fileName = '{0}_{1}.jpeg'.format(random.randrange(1, 99999), random.randrange(1, 99999))
+    driver.get_screenshot_as_file(fileName)
     driver.close()
     
-    imgIOString = StringIO.StringIO(decodestring(imgB64))
-    image = Image.open(imgIOString)
-    imgIOString.close()
-    return image
+    return fileName
 
 
-def ResizeImage(image, size):
+def ResizeImage(fileNameOrig, size):
+    image = Image.open(fileNameOrig)
     iSize = image.size
     resImage = image.resize((size[0], int(iSize[1] / (float(iSize[0]) / size[0]) )), Image.ANTIALIAS)
     if (size[1]):
         resImage = resImage.crop((0, 0, size[0], size[1]))
+        
+    fileName = '{0}_{1}.jpeg'.format(random.randrange(1, 99999), random.randrange(1, 99999))
+    resImage.save(fileName, "JPEG", quality=85)
     
-    imgIOString = StringIO.StringIO()
-    resImage.save(imgIOString, "JPEG", quality=85)
-    data = imgIOString.getvalue()
-    imgIOString.close()
-    return data
+    resultFile = open(fileName, "rb")
+    data = resultFile.read();
+    resultFile.close();
+    
+    # remove temp file
+    os.remove(fileName);
+    
+    return data;
