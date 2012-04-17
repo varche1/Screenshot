@@ -57,7 +57,7 @@ def getScreenMain(rowId, pageUrl, browser, resolution):
             try:
                 os.remove(fileName);
             except IOError, e:
-                raise Exception("Error while removing original screenshot(temporary file): {0}".format(str(e)))
+                raise Exception("Error while removing original screenshot(temporary file): {0}.".format(str(e)))
 
 @task(ignore_result=True)
 def getScreenImage(url, browser, resolution):
@@ -71,9 +71,9 @@ def getScreenImage(url, browser, resolution):
         try:
             urlopen(checkedRequest)
         except HTTPError, e:
-            raise Exception("URL {0} is unreachable: {1}".format(url.geturl(), str(e)))
+            raise Exception("URL {0} is unreachable: {1}.".format(url.geturl(), str(e)))
         except URLError, e:
-            raise Exception("URL {0} is malformed: {1}".format(url.geturl(), str(e)))
+            raise Exception("URL {0} is malformed: {1}.".format(url.geturl(), str(e)))
     
         # cheking resolution
         try:
@@ -84,21 +84,24 @@ def getScreenImage(url, browser, resolution):
         if (not (len(res) == 2 and res[0] > 0 and res[1] > 0)):
             raise Exception("Resolution {0} is malformed.".format(resolution))
         
-        # cheking browser
-        if (browser == 'ff'):
-            driver = webdriver.Firefox()
-        
-        elif (browser == 'ch'):
-            driver = webdriver.Chrome()
-        
-        elif (browser == 'ie'):
-            driver = webdriver.Ie()
-        
-        elif (browser == 'op'):
-            driver = webdriver.Opera()
-        
-        else:
-            raise Exception("Browser\'s name {0} is malformed.".format(browser))
+        try:
+            # cheking browser
+            if (browser == 'ff'):
+                driver = webdriver.Firefox()
+            
+            elif (browser == 'ch'):
+                driver = webdriver.Chrome()
+            
+            elif (browser == 'ie'):
+                driver = webdriver.Ie()
+            
+            elif (browser == 'op'):
+                driver = webdriver.Opera()
+            
+            else:
+                raise Exception("Browser\'s name {0} is malformed.".format(browser))
+        except Exception, e:
+            raise Exception("Browser initialization error: {0}.".format(str(e)))
         
         # preparing browser
         driver.set_window_size(res[0], res[1])
@@ -107,14 +110,14 @@ def getScreenImage(url, browser, resolution):
         # taking screenshot
         fileName = '{0}_{1}.jpeg'.format(random.randrange(1, 99999), random.randrange(1, 99999))
         if (not(driver.get_screenshot_as_file(fileName))):
-            raise Exception("Error while taking/saving screenshot: (Browser) - {0}, (URL) - {1}, (File Name) - {2}, ".format(driver.name, driver.current_url, fileName))
+            raise Exception("Error while taking/saving screenshot: (Browser) - {0}, (URL) - {1}, (File Name) - {2}.".format(driver.name, driver.current_url, fileName))
         
         driver.close()
         
         return fileName
     
     except  WebDriverException, e:
-        raise Exception("Browser\'s error: {0}".format(str(e)))
+        raise Exception("Browser\'s error: {0}.".format(str(e)))
     except Exception, e:
         raise Exception(str(e))
 
@@ -123,34 +126,34 @@ def ResizeImage(fileNameOrig, size):
     try:
         # checking size
         if (size <= 0):
-            raise Exception("Size {0} is malformed".format(size))
+            raise Exception("Size {0} is malformed.".format(size))
         
         # opening image
         try:
             image = Image.open(fileNameOrig)
         except IOError, e:
-            raise Exception("Error while opening original screenshot: {0}".format(str(e)))
+            raise Exception("Error while opening original screenshot: {0}.".format(str(e)))
         
         # resizing image    
         iSize = image.size   
         try:
             resImage = image.resize((size[0], int(iSize[1] / (float(iSize[0]) / size[0]) )), Image.ANTIALIAS)
         except Exception, e:
-            raise Exception("Error while resizing original screenshot: (Size) - {0}, (Error) - {1}".format(size, str(e)))    
+            raise Exception("Error while resizing original screenshot: (Size) - {0}, (Error) - {1}.".format(size, str(e)))    
         
         # croping image   
         try:    
             if (size[1]):
                 resImage = resImage.crop((0, 0, size[0], size[1]))
         except Exception, e:
-            raise Exception("Error while croping original screenshot: (Size) - {0}, (Error) - {1}".format(size, str(e)))    
+            raise Exception("Error while croping original screenshot: (Size) - {0}, (Error) - {1}.".format(size, str(e)))    
          
         # saving image     
         fileName = '{0}_{1}.jpeg'.format(random.randrange(1, 99999), random.randrange(1, 99999))
         try:
             resImage.save(fileName, "JPEG", quality=85)
         except IOError, e:
-            raise Exception("Error while saving resized screenshot: {0}".format(str(e)))
+            raise Exception("Error while saving resized screenshot: {0}.".format(str(e)))
         
         # opening resized image to the memory
         try:
@@ -158,7 +161,7 @@ def ResizeImage(fileNameOrig, size):
             data = resultFile.read();
             resultFile.close();
         except IOError, e:
-            raise Exception("Error while opening resized screenshot: {0}".format(str(e)))
+            raise Exception("Error while opening resized screenshot: {0}.".format(str(e)))
             
         return data;
     
@@ -171,4 +174,4 @@ def ResizeImage(fileNameOrig, size):
             try:
                 os.remove(fileName);
             except IOError, e:
-                raise Exception("Error while removing resized screenshot(temporary file): {0}".format(str(e)))
+                raise Exception("Error while removing resized screenshot(temporary file): {0}.".format(str(e)))
