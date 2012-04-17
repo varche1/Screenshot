@@ -17,4 +17,4 @@ CELERY_MONGODB_BACKEND_SETTINGS = {
 }
 
 # Additional settings
-CELERY_IMPORTS = ("worker", ) 
+CELERY_IMPORTS = ("worker", "worker_base") 
