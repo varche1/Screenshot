@@ -1,26 +1,30 @@
 # -*- coding: utf-8 -*-
 import os
-
-from urlparse import urlparse
 import random
 
 from selenium import selenium
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 
+from urlparse import urlparse
 from urllib2 import Request, urlopen, URLError, HTTPError
 
 import pymongo
 import gridfs
-from pymongo.errors import ConnectionFailure
+from pymongo.errors import ConnectionFailure, PyMongoError
 from gridfs.errors import GridFSError
 
 from PIL import Image
 
 from celery.task import task
 from celery.execute import send_task
-from celery.task.sets import subtask
-from celery.task.sets import TaskSet
+#from celery.task.sets import subtask
+#from celery.task.sets import TaskSet
+
+# logging errors
+def on_failure_handler(self, exc, task_id, args, kwargs, einfo):
+    logger = getScreenMain.get_logger(loglevel="ERROR", logfile="localWorkerErrors.log")
+    logger.error("Worker error: \n\tOS - {0} \n\tException: {1}".format(os.uname(), exc))
 
 @task(ignore_result=True)
 def getScreenMain(rowId, pageUrl, browser, resolution):
@@ -46,6 +50,8 @@ def getScreenMain(rowId, pageUrl, browser, resolution):
         raise Exception("Error while connecting to MongoDB: {0}.".format(str(e)))
     except GridFSError, e:
         raise Exception("Error while putting file to MongoDB: (rowId) - {0}, (Error) - {1}.".format(rowId, str(e)))
+    except PyMongoError, e:
+        raise Exception("Error while working with MongoDB: {0}.".format(str(e)))
     except Exception, e:
         raise Exception(str(e))
     finally:
@@ -66,15 +72,17 @@ def getScreenImage(url, browser, resolution):
         url = urlparse(url)
         if not (url.netloc and url.scheme):
             raise Exception("URL {0} is malformed.".format(url.geturl()))
-            
+
         checkedRequest = Request(url.geturl())
+        checkedRequest.get_method = lambda : 'HEAD'
         try:
-            urlopen(checkedRequest)
+            response = urlopen(checkedRequest)
+            response.info().gettype()
         except HTTPError, e:
             raise Exception("URL {0} is unreachable: {1}.".format(url.geturl(), str(e)))
         except URLError, e:
             raise Exception("URL {0} is malformed: {1}.".format(url.geturl(), str(e)))
-    
+
         # cheking resolution
         try:
             res = [int(x) for x in resolution.split('_')]
@@ -175,3 +183,4 @@ def ResizeImage(fileNameOrig, size):
                 os.remove(fileName);
             except IOError, e:
                 raise Exception("Error while removing resized screenshot(temporary file): {0}.".format(str(e)))
+                

@@ -5,9 +5,12 @@ import tornado.ioloop
 import tornado.web
 import tornado.template
 import tornado.escape
+from tornado import websocket
+
 
 import sys, os
 import json
+import uuid
 
 import pymongo, gridfs
 from bson.objectid import ObjectId
@@ -15,10 +18,11 @@ from bson.objectid import ObjectId
  #Распределенные задачи
 from celery.task import task
 from celery.execute import send_task
-from celery.task.sets import subtask
-from celery.task.sets import TaskSet
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# WebSockets pool
+webSockets = []
 
 class CoreHandler(tornado.web.RequestHandler):
     def initialize(self, database):
@@ -30,7 +34,7 @@ class CoreHandler(tornado.web.RequestHandler):
             self.data = {}
     
     def response(self, message, code, status):
-        self.write({'success': status, 'code': code, 'results': message})
+        self.write({'success': status, 'code': code, 'results': message, 'cookie': self.get_cookie('socket_id', '-')})
     
     def objectIdToStr(self, row):
         if (type(row) is dict):
@@ -55,6 +59,7 @@ class MainHandler(CoreHandler):
     
     def get(self):
         loader = tornado.template.Loader(os.path.join(APP_DIR, 'templates'))
+        self.set_cookie('socket_id', uuid.uuid1())
         self.write(loader.load("index.html").generate())
 
 
@@ -157,6 +162,28 @@ class ImageHandler(CoreHandler):
         except:
             raise tornado.web.HTTPError(404)
 
+#class WebSocket(websocket.WebSocketHandler):
+#    def open(self):
+#        print "WebSocket opened"
+#        
+#    def on_message(self, message):
+#        socket_id = json.loads(message).socket_id
+#        for socket in webSockets:
+#            if socket_id == socket.socket_id
+#            webSockets.append({'handler' : self, 'socket_id' : socket_id})
+#
+#    def on_close(self):
+#        webSockets.remove(self)
+#        print "WebSocket closed"
+#        
+#    #def 
+
+#class Announcer(tornado.web.RequestHandler):
+#    def get(self, *args, **kwargs):
+#        data = self.get_argument('data')
+#        for socket in GLOBALS['sockets']:
+#            socket.write_message(data)
+#            self.write('Posted')
 
 @task
 def addTask(rowId, pageUrl, system, browser, resolutionId):
@@ -169,8 +196,13 @@ def addTask(rowId, pageUrl, system, browser, resolutionId):
     options = [rowId, pageUrl, browser, resolutionId]
     
     # очередь, куда отправлять задачу, будет название OS - system
-    #send_task("worker.get_screen", options, queue=system)
-    send_task("worker.getScreen", options)
+    send_task("worker.get_screen", options, queue=system)
+    #send_task("worker.getScreen", options)
+    
+@task(ignore_result=True)
+def response_action(rowId):
+    result = "Response (in app.py) is - {0}.".format(rowId)
+    return result
 
 
 connection = pymongo.Connection('127.0.0.1', 27017)
@@ -183,18 +215,22 @@ application = tornado.web.Application([
     (r"/screen",        ScreenHandler, dict(database=database)),
     (r"/image",         ImageHandler, dict(database=database)),
     (r"/static/(.*)",   tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'static')}),
-    (r"/get-worker",    tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'worker'), 'default_filename': 'worker.py'}),
+    (r"/websocket",     WebSocket),
+    (r"/get-worker/(.*)",    tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'worker'), 'default_filename': 'worker.py'}),
 ])
 
 class TornadoDaemon(Daemon):
     def run(self):
-        application.listen(80)
+        application.listen(8888)
         tornado.ioloop.IOLoop.instance().start()
 
 if __name__ == "__main__":
-
+    
+    #application.listen(8888)
+    #tornado.ioloop.IOLoop.instance().start()
+    
     pid_file = os.path.join(APP_DIR, 'tornado.pid')
-    log_file = os.path.join(APP_DIR, 'logs', 'tornado.log')    
+    log_file = os.path.join(APP_DIR, '..', 'logs', 'tornado.log')    
 
     daemon = TornadoDaemon(pid_file, stdout=log_file, stderr=log_file)
     if len(sys.argv) == 2:
