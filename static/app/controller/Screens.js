@@ -12,7 +12,7 @@ Ext.define('Screener.controller.Screens', {
     
     tpl: Ext.create('Ext.XTemplate',
         '<tpl for=".">',
-            '<div class="screenshot">',
+            '<div class="screenshot {id}">',
                 '<span><b class="browser browser-{browser}">{version}</b></span>',
                 '<span>{resolution}</span>',
                 '<a href="{imageUrl}" target="_blank">',
@@ -27,6 +27,7 @@ Ext.define('Screener.controller.Screens', {
         
         this.application.on({
             screenload: this.onScreensLoad,
+            screenUpdate: this.onScreensUpdate,
             scope: this
         });
     },
@@ -43,12 +44,14 @@ Ext.define('Screener.controller.Screens', {
             success: function(response){
                 //url: '/image?page=%p%&type=%t%'.replace('%p%', data._id).replace('%t%', 'thumb')
                 (function(){
-                    this.updateScreens(
-                        this.prepareData(Ext.decode(response.responseText))
-                    );
+                    this.updateScreens(Ext.decode(response.responseText));
                 }).call(self)
             }
         });
+    },
+    
+    onScreensUpdate: function(data) {
+        this.updateScreens(data);
     },
     
     prepareData: function(data)
@@ -58,6 +61,7 @@ Ext.define('Screener.controller.Screens', {
             var system = value.browser.split('_');
             if (!result[system[0]]) result[system[0]] = [];
             var data = {
+                id          : value._id,
                 os          : system[0],
                 browser     : system[1],
                 version     : system[2],
@@ -73,6 +77,7 @@ Ext.define('Screener.controller.Screens', {
     
     updateScreens: function(data)
     {
+        data = this.prepareData(data)
         var self = this;
         var view = this.getScreenList();
         Ext.Object.each(data, function(key, value) {

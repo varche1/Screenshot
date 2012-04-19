@@ -44,6 +44,25 @@ Ext.application({
                 }]
             }]
         });
+        
+        //WebSockets
+        var socket = new WebSocket("ws://" + "web-shots.net:8888" + "/websocket");
+        
+        console.log(socket);
+        
+        socket.onopen = function(evt) {
+            console.log('Connection open ...');
+            socket.send(Ext.util.Cookies.get("socket_id"));
+        };
+        
+        socket.onclose = function(evt) {
+            console.log('Connection close ...');
+        };
+        
+        socket.onmessage = function(message) {
+           console.log('Message: ' + message);
+           //this.fireEvent('screenUpdate', message);
+        };
     }
 });
 var Tools = {

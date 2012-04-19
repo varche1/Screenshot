@@ -6,11 +6,12 @@ import tornado.web
 import tornado.template
 import tornado.escape
 from tornado import websocket
-
+import tornado.options
 
 import sys, os
 import json
 import uuid
+import logging
 
 import pymongo, gridfs
 from bson.objectid import ObjectId
@@ -21,12 +22,8 @@ from celery.execute import send_task
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# WebSockets pool
-webSockets = []
-
 class CoreHandler(tornado.web.RequestHandler):
-    def initialize(self, database):
-        self.db         = database
+    def initialize(self):
         self.arguments  = {k : v[0] for k,v in self.request.arguments.items()}
         try:
             self.data = {k : v for k,v in json.loads(self.request.body).items()}
@@ -53,13 +50,21 @@ class CoreHandler(tornado.web.RequestHandler):
         else:
             self.db[table].update({'_id': self.strToObjectId(itemId) }, {'$set': self.data})
         self.data.update({'_id': str(itemId)})
+    
+    @property
+    def db(self):
+        return self.application.db
+    
+    @property
+    def wsPool(self):
+        return self.application.webSocketsPool
 
 
 class MainHandler(CoreHandler):
     
     def get(self):
         loader = tornado.template.Loader(os.path.join(APP_DIR, 'templates'))
-        self.set_cookie('socket_id', uuid.uuid1())
+        self.set_cookie('socket_id', str(uuid.uuid4()))
         self.write(loader.load("index.html").generate())
 
 
@@ -93,7 +98,7 @@ class PagesHandler(SitesHandler):
     
     table = 'pages'
     
-    def get(self):
+    def get(self):        
         if 'site' not in self.arguments:
             return self.response("arguments not found", 10, False)
         
@@ -123,6 +128,10 @@ class ScreenHandler(CoreHandler):
     def post(self):
         if 'browsers' and 'pages' and 'resolution' not in self.data:
             return self.response("arguments not found", 10, False)
+            
+        socket_id = self.get_cookie('socket_id')
+        if socket_id is None:
+            Exception("socket_id is None.")
         
         for k,v in self.data.items():
             if (type(v) is not list):
@@ -142,17 +151,15 @@ class ScreenHandler(CoreHandler):
                     else:
                         rowId = self.db.screen.insert({'page': pageId, 'browser': browserId, 'resolution': resolutionId})
                     
-                    addTask(self.objectIdToStr(rowId), page['url'], system, browser, resolutionId)
+                    addTask(self.objectIdToStr(rowId), page['url'], pageId, system, browser, resolutionId, socket_id)
         
         self.response({}, 0, True)
 
 
 class ImageHandler(CoreHandler):
-    
     def get(self):
         if 'page' and 'type' not in self.arguments:
             return self.response("arguments not found", 10, False)
-        
         
         fs = gridfs.GridFS(self.db)
         try:
@@ -162,52 +169,57 @@ class ImageHandler(CoreHandler):
         except:
             raise tornado.web.HTTPError(404)
 
-#class WebSocket(websocket.WebSocketHandler):
-#    def open(self):
-#        print "WebSocket opened"
-#        
-#    def on_message(self, message):
-#        socket_id = json.loads(message).socket_id
-#        for socket in webSockets:
-#            if socket_id == socket.socket_id
-#            webSockets.append({'handler' : self, 'socket_id' : socket_id})
-#
-#    def on_close(self):
-#        webSockets.remove(self)
-#        print "WebSocket closed"
-#        
-#    #def 
+class WebSocket(websocket.WebSocketHandler):
+    def open(self):
+        logging.info("WebSocket opened")
+        
+    def on_message(self, message):
+        socket_id = message
+        logging.info("WebSocket message: {0}".format(socket_id))
+        
+        self.application.webSocketsPool[socket_id] = self
 
-#class Announcer(tornado.web.RequestHandler):
-#    def get(self, *args, **kwargs):
-#        data = self.get_argument('data')
-#        for socket in GLOBALS['sockets']:
-#            socket.write_message(data)
-#            self.write('Posted')
+    def on_close(self):
+        for key, value in self.application.webSocketsPool.items():
+            if value == self:
+                del self.application.webSocketsPool[key]
+                
+        logging.info("WebSocket closed")
 
 @task
-def addTask(rowId, pageUrl, system, browser, resolutionId):
+def addTask(rowId, pageUrl, pageId, system, browser, resolutionId, socket_id):
     """
     смотрим system (win7, winxp, ubuntu)
     и создаем задачу в нужном потоке
     """
     
     # опции для задачи
-    options = [rowId, pageUrl, browser, resolutionId]
+    options = [rowId, pageUrl, pageId, browser, resolutionId, socket_id]
     
     # очередь, куда отправлять задачу, будет название OS - system
-    send_task("worker.get_screen", options, queue=system)
-    #send_task("worker.getScreen", options)
+    asyncResult = send_task("worker.getScreen", options, queue = 'ubuntu')
+    
+    logging.info("\n\n asyncResult : {0}, {1} \n\n".format(type(asyncResult), asyncResult))
+    
+def my_callback():
+    logging.info("\n\n my_callback \n\n")
     
 @task(ignore_result=True)
-def response_action(rowId):
-    result = "Response (in app.py) is - {0}.".format(rowId)
-    return result
+def response_action(socket_id, resolution, pageId, browser, rowId):
+    logging.info("WebSocket response_action START")
+    logging.info("WebSockets length: {0}".format(application))
+    logging.info("Socket_id {0}.\n".format(socket_id))
+
+    #for socket in webSockets:
+    #    logging.info("WebSocket__: {0}.\n".format(str(socket)))
+    #    if socket_id == socket.socket_id:
+    #        socket['handler'].write_message({'resolution' : resolution, 'page' : pageId, 'browser' : browser, '_id' : rowId})
+    #        logging.info("WebSocket message: {0}".format(str({'resolution' : resolution, 'page' : pageId, 'browser' : browser, '_id' : rowId})))
+    
+    logging.info("WebSocket response_action END")
 
 
-connection = pymongo.Connection('127.0.0.1', 27017)
-database = connection.screener
-
+"""
 application = tornado.web.Application([
     (r"/",              MainHandler, dict(database=database)),
     (r"/site",          SitesHandler, dict(database=database)),
@@ -218,7 +230,28 @@ application = tornado.web.Application([
     (r"/websocket",     WebSocket),
     (r"/get-worker/(.*)",    tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'worker'), 'default_filename': 'worker.py'}),
 ])
+application.webSocketsPool= {'1':2}
+"""
+class Application(tornado.web.Application):
+    def __init__(self):
+        
+        connection = pymongo.Connection('127.0.0.1', 27017)
+        self.db = connection.screener
+        self.webSocketsPool= {'1':2}
 
+        handlers = [
+            (r"/",              MainHandler),
+            (r"/site",          SitesHandler),
+            (r"/page",          PagesHandler),
+            (r"/screen",        ScreenHandler),
+            (r"/image",         ImageHandler),
+            (r"/static/(.*)",   tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'static')}),
+            (r"/websocket",     WebSocket),
+            (r"/get-worker/(.*)",    tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'worker'), 'default_filename': 'worker.py'}),
+        ]
+        tornado.web.Application.__init__(self, handlers)
+
+application = Application()
 class TornadoDaemon(Daemon):
     def run(self):
         application.listen(8888)
@@ -229,8 +262,10 @@ if __name__ == "__main__":
     #application.listen(8888)
     #tornado.ioloop.IOLoop.instance().start()
     
+    # разрешить логирование
+    tornado.options.parse_command_line()
     pid_file = os.path.join(APP_DIR, 'tornado.pid')
-    log_file = os.path.join(APP_DIR, '..', 'logs', 'tornado.log')    
+    log_file = os.path.join(APP_DIR, '..', 'logs', 'tornado.log')
 
     daemon = TornadoDaemon(pid_file, stdout=log_file, stderr=log_file)
     if len(sys.argv) == 2:

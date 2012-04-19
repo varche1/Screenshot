@@ -18,8 +18,6 @@ from PIL import Image
 
 from celery.task import task
 from celery.execute import send_task
-#from celery.task.sets import subtask
-#from celery.task.sets import TaskSet
 
 # logging errors
 def on_failure_handler(self, exc, task_id, args, kwargs, einfo):
@@ -27,7 +25,7 @@ def on_failure_handler(self, exc, task_id, args, kwargs, einfo):
     logger.error("Worker error: \n\tOS - {0} \n\tException: {1}".format(os.uname(), exc))
 
 @task(ignore_result=True)
-def getScreenMain(rowId, pageUrl, browser, resolution):
+def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
     try:
         fileName = getScreenImage(pageUrl, browser, resolution)
         
@@ -41,8 +39,10 @@ def getScreenMain(rowId, pageUrl, browser, resolution):
         fs.put(thumbImageData,  filename=rowId+"thumb")
         fs.put(normalImageData, filename=rowId+"normal")
         
+        result = [socket_id, resolution, pageId, browser, rowId]
+        
         # server notification about complite task
-        send_task("server.response_action", [rowId], queue="response_q")
+        send_task("server.response_action", result, queue="response_q")
         
         return { 'state' : "COMPLITE-getScreen", 'rowId' : rowId }
     
