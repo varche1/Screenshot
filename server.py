@@ -8,6 +8,8 @@ import tornado.escape
 from tornado import websocket
 import tornado.options
 
+from configuration import ScreenshotConfigs
+
 import sys, os
 import json
 import uuid
@@ -19,6 +21,9 @@ from bson.objectid import ObjectId
  #Распределенные задачи
 from celery.task import task
 from celery.execute import send_task
+
+# temp
+import time
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -58,14 +63,21 @@ class CoreHandler(tornado.web.RequestHandler):
     @property
     def wsPool(self):
         return self.application.webSocketsPool
+    
+    @property
+    def tasksPool(self):
+        return self.application.tasksPool
 
 
 class MainHandler(CoreHandler):
     
     def get(self):
+        configs = ScreenshotConfigs()
+        mongo_conf = configs.GiveMongoConnectionConf()
+        
         loader = tornado.template.Loader(os.path.join(APP_DIR, 'templates'))
         self.set_cookie('socket_id', str(uuid.uuid4()))
-        self.write(loader.load("index.html").generate())
+        self.write(loader.load("index.html").generate(mongo_conf = mongo_conf))
 
 
 class SitesHandler(CoreHandler):
@@ -183,6 +195,7 @@ class WebSocket(websocket.WebSocketHandler):
         for key, value in self.application.webSocketsPool.items():
             if value == self:
                 del self.application.webSocketsPool[key]
+                del self.application.tasksPool[key]
                 
         logging.info("WebSocket closed")
 
@@ -197,47 +210,35 @@ def addTask(rowId, pageUrl, pageId, system, browser, resolutionId, socket_id):
     options = [rowId, pageUrl, pageId, browser, resolutionId, socket_id]
     
     # очередь, куда отправлять задачу, будет название OS - system
-    asyncResult = send_task("worker.getScreen", options, queue = 'ubuntu')
+    asyncResult = send_task("worker.getScreen", options, queue = "%s_%s" % (system, browser))
     
-    logging.info("\n\n asyncResult : {0}, {1} \n\n".format(type(asyncResult), asyncResult))
+    if(socket_id in application.tasksPool):
+        application.tasksPool[socket_id].append(asyncResult)
+    else:
+        application.tasksPool[socket_id] = [asyncResult]
     
-def my_callback():
-    logging.info("\n\n my_callback \n\n")
-    
-@task(ignore_result=True)
-def response_action(socket_id, resolution, pageId, browser, rowId):
-    logging.info("WebSocket response_action START")
-    logging.info("WebSockets length: {0}".format(application))
-    logging.info("Socket_id {0}.\n".format(socket_id))
+def checkTasksState():
+    #logging.info("Start checkTasksState: webSocketsPool count - {0}. tasksPool count - {1}".format(len(application.webSocketsPool),len(application.tasksPool)))
+    for socket_id in application.tasksPool:
+        for task in application.tasksPool[socket_id]:
+            if task.ready():
+                logging.info("RESULT SENDING: {0}".format(task.result))
+                application.webSocketsPool[socket_id].write_message(task.result)
+                application.tasksPool[socket_id].remove(task)
 
-    #for socket in webSockets:
-    #    logging.info("WebSocket__: {0}.\n".format(str(socket)))
-    #    if socket_id == socket.socket_id:
-    #        socket['handler'].write_message({'resolution' : resolution, 'page' : pageId, 'browser' : browser, '_id' : rowId})
-    #        logging.info("WebSocket message: {0}".format(str({'resolution' : resolution, 'page' : pageId, 'browser' : browser, '_id' : rowId})))
-    
-    logging.info("WebSocket response_action END")
-
-
-"""
-application = tornado.web.Application([
-    (r"/",              MainHandler, dict(database=database)),
-    (r"/site",          SitesHandler, dict(database=database)),
-    (r"/page",          PagesHandler, dict(database=database)),
-    (r"/screen",        ScreenHandler, dict(database=database)),
-    (r"/image",         ImageHandler, dict(database=database)),
-    (r"/static/(.*)",   tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'static')}),
-    (r"/websocket",     WebSocket),
-    (r"/get-worker/(.*)",    tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'worker'), 'default_filename': 'worker.py'}),
-])
-application.webSocketsPool= {'1':2}
-"""
 class Application(tornado.web.Application):
     def __init__(self):
         
-        connection = pymongo.Connection('127.0.0.1', 27017)
+        # Loading configurations for APP
+        configs = ScreenshotConfigs()
+        mongo_conf = configs.GiveMongoConnectionConf()
+
+        # MongoDB
+        connection = pymongo.Connection(mongo_conf['host'], mongo_conf['port'])
         self.db = connection.screener
-        self.webSocketsPool= {'1':2}
+        
+        self.webSocketsPool= {}
+        self.tasksPool= {}
 
         handlers = [
             (r"/",              MainHandler),
@@ -255,14 +256,19 @@ application = Application()
 class TornadoDaemon(Daemon):
     def run(self):
         application.listen(8888)
-        tornado.ioloop.IOLoop.instance().start()
+        IOLoopInstance = tornado.ioloop.IOLoop.instance()
+        
+        configs = ScreenshotConfigs()
+        tornado_settings = configs.GiveTornadoSettings()
+        
+        # checking tasks'r state for notify users
+        periodic = tornado.ioloop.PeriodicCallback(checkTasksState, float(tornado_settings["checktacks_time"]))
+        periodic.start()
+        
+        IOLoopInstance.start()
 
 if __name__ == "__main__":
     
-    #application.listen(8888)
-    #tornado.ioloop.IOLoop.instance().start()
-    
-    # разрешить логирование
     tornado.options.parse_command_line()
     pid_file = os.path.join(APP_DIR, 'tornado.pid')
     log_file = os.path.join(APP_DIR, '..', 'logs', 'tornado.log')

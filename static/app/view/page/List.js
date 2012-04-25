@@ -51,7 +51,15 @@ Ext.define('Screener.view.page.List', {
                 iconCls: 'shots-make',
                 action: 'shots-make',
                 disabled: true
-            }]
+            }
+//            TEST
+            ,{
+                xtype: 'button',
+                text: 'TEST',
+                action: 'test-btn'
+            }
+            
+            ]
         }];
         
         this.callParent();

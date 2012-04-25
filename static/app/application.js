@@ -61,7 +61,8 @@ Ext.application({
         
         socket.onmessage = function(message) {
            console.log('Message: ' + message);
-           //this.fireEvent('screenUpdate', message);
+           
+           //
         };
     }
 });

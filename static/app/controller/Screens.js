@@ -51,7 +51,8 @@ Ext.define('Screener.controller.Screens', {
     },
     
     onScreensUpdate: function(data) {
-        this.updateScreens(data);
+        //this.updateScreens(data);
+        log(data);
     },
     
     prepareData: function(data)
