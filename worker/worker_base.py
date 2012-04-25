@@ -39,12 +39,7 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
         fs.put(thumbImageData,  filename=rowId+"thumb")
         fs.put(normalImageData, filename=rowId+"normal")
         
-        result = [socket_id, resolution, pageId, browser, rowId]
-        
-        # server notification about complite task
-        send_task("server.response_action", result, queue="response_q")
-        
-        return { 'state' : "COMPLITE-getScreen", 'rowId' : rowId }
+        return {'resolution' : resolution, 'page' : pageId, 'browser' : browser, '_id' : rowId, 'socket_id' : socket_id}
     
     except ConnectionFailure, e:
         raise Exception("Error while connecting to MongoDB: {0}.".format(str(e)))
