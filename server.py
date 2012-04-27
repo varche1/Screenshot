@@ -198,6 +198,10 @@ class WebSocket(websocket.WebSocketHandler):
                 del self.application.tasksPool[key]
                 
         logging.info("WebSocket closed")
+        
+class UpdateWorkerHandler(CoreHandler):
+    def get(self):
+        UpdateWorkerTask()
 
 @task
 def addTask(rowId, pageUrl, pageId, system, browser, resolutionId, socket_id):
@@ -216,6 +220,15 @@ def addTask(rowId, pageUrl, pageId, system, browser, resolutionId, socket_id):
         application.tasksPool[socket_id].append(asyncResult)
     else:
         application.tasksPool[socket_id] = [asyncResult]
+        
+@task
+def UpdateWorkerTask():
+    """
+    задача: Обновление worker'а
+    """
+    
+    send_task("worker.updateWorker", ["Updating Worker!"], queue = "updating")
+
     
 def checkTasksState():
     #logging.info("Start checkTasksState: webSocketsPool count - {0}. tasksPool count - {1}".format(len(application.webSocketsPool),len(application.tasksPool)))
@@ -248,6 +261,7 @@ class Application(tornado.web.Application):
             (r"/image",         ImageHandler),
             (r"/static/(.*)",   tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'static')}),
             (r"/websocket",     WebSocket),
+            (r"/updateworker",  UpdateWorkerHandler),
             (r"/get-worker/(.*)",    tornado.web.StaticFileHandler, {"path": os.path.join(APP_DIR, 'worker'), 'default_filename': 'worker.py'}),
         ]
         tornado.web.Application.__init__(self, handlers)
