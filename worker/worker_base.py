@@ -26,6 +26,9 @@ def on_failure_handler(self, exc, task_id, args, kwargs, einfo):
 
 @task(ignore_result=True)
 def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
+    fTemp = open('temp.log', 'w')
+    fTemp.write("Worker WAS UPDATED")
+    
     try:
         fileName = getScreenImage(pageUrl, browser, resolution)
         
