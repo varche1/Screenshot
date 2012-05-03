@@ -29,8 +29,9 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
     try:
         fileName = getScreenImage(pageUrl, browser, resolution)
         
-        thumbImageData  = ResizeImage(fileName, (100, 100))
-        normalImageData = ResizeImage(fileName, (1000, 0))
+        thumbImageData    = ResizeImage(fileName, (100, 100))
+        normalImageData   = ResizeImage(fileName, (1000, 0))
+        originalImageData = ResizeImage(fileName, (0, 0))
         
         connection = pymongo.Connection('176.9.24.81', 27017)
         db = connection.screener
@@ -38,6 +39,7 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
         
         fs.put(thumbImageData,  filename=rowId+"thumb")
         fs.put(normalImageData, filename=rowId+"normal")
+        fs.put(originalImageData, filename=rowId+"original")
         
         return {'resolution' : resolution, 'page' : pageId, 'browser' : browser, '_id' : rowId, 'socket_id' : socket_id}
     
@@ -140,7 +142,8 @@ def ResizeImage(fileNameOrig, size):
         # resizing image    
         iSize = image.size   
         try:
-            resImage = image.resize((size[0], int(iSize[1] / (float(iSize[0]) / size[0]) )), Image.ANTIALIAS)
+            if (size[0]):
+                resImage = image.resize((size[0], int(iSize[1] / (float(iSize[0]) / size[0]) )), Image.ANTIALIAS)
         except Exception, e:
             raise Exception("Error while resizing original screenshot: (Size) - {0}, (Error) - {1}.".format(size, str(e)))    
         
@@ -150,11 +153,13 @@ def ResizeImage(fileNameOrig, size):
                 resImage = resImage.crop((0, 0, size[0], size[1]))
         except Exception, e:
             raise Exception("Error while croping original screenshot: (Size) - {0}, (Error) - {1}.".format(size, str(e)))    
-         
+        
+        return resImage.tostring('jpeg', quality=90)
+        
         # saving image     
         fileName = '{0}_{1}.jpeg'.format(random.randrange(1, 99999), random.randrange(1, 99999))
         try:
-            resImage.save(fileName, "JPEG", quality=85)
+            resImage.save(fileName, "JPEG", quality=100)
         except IOError, e:
             raise Exception("Error while saving resized screenshot: {0}.".format(str(e)))
         
@@ -166,7 +171,7 @@ def ResizeImage(fileNameOrig, size):
         except IOError, e:
             raise Exception("Error while opening resized screenshot: {0}.".format(str(e)))
             
-        return data;
+        return data
     
     except Exception, e:
         raise Exception(str(e))
