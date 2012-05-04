@@ -60,9 +60,7 @@ Ext.application({
         };
         
         socket.onmessage = function(message) {
-           console.log('Message: ' + message);
-           
-           //
+            console.log(message);
         };
     }
 });

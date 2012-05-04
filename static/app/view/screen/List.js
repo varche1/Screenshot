@@ -1,56 +1,44 @@
 Ext.define('Screener.view.screen.List', {
-    extend: 'Ext.tab.Panel',
+    extend: 'Ext.Panel',
     alias: 'widget.screenlist',
     
-    //store: 'Sites',
-    
-    //title: 'Screens',
-    defaults :{
-        autoScroll: true,
-        bodyPadding: 5
-    },
-    store: 'Pages',
+    autoScroll: true,
+    bodyPadding: 5,
     initComponent: function() {
-        this.items = [{
-            title: 'All',
-            border: false,
-            id: 'screen-all'
-        },{
-            title: 'Win7',
-            border: false,
-            id: 'screen-win7'
-        },{
-            title: 'WinXP',
-            border: false,
-            id: 'screen-winxp'
-        },{
-            title: 'Ubuntu',
-            border: false,
-            id: 'screen-ubuntu'
-        }
-            /*,
-             url: '/screen?page=4f57ee94c6a8080824000001',
-            {
-            title: 'All',
-            bodyPadding: 10,
-            id: 'screen-all',
-            items: dataview
-        },{
-            title: 'WinXP',
-            bodyPadding: 10,
-            id: 'screen-winxp',
-            items: dataview
-        },{
-            title: 'Win7',
-            bodyPadding: 10,
-            id: 'screen-win7',
-            items: dataview
-        },{
-            title: 'Ubuntu',
-            bodyPadding: 10,
-            id: 'screen-ubuntu',
-            items: dataview
-        }*/]
+        this.dockedItems = [{
+            xtype: 'toolbar',
+            items: [{
+                xtype: 'button',
+                text:'Add',
+                iconCls: 'page-add',
+                action: 'add',
+                disabled: true
+            },{
+                xtype: 'button',
+                text: 'Edit',
+                iconCls: 'page-edit',
+                action: 'edit',
+                disabled: true
+            },{
+                xtype: 'button',
+                text: 'Delete',
+                iconCls: 'page-delete',
+                action: 'delete',
+                disabled: true
+            },{
+                xtype: 'button',
+                text: 'Filter shots',
+                iconCls: 'shots-filter',
+                action: 'shots-filter',
+                disabled: true
+            },{
+                xtype: 'button',
+                text: 'Make shots',
+                iconCls: 'shots-make',
+                action: 'shots-make',
+                disabled: true
+            }]
+        }];
         
         this.callParent();
     }

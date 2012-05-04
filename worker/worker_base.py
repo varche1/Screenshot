@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 import random
 
 from selenium import selenium
@@ -13,6 +14,7 @@ import pymongo
 import gridfs
 from pymongo.errors import ConnectionFailure, PyMongoError
 from gridfs.errors import GridFSError
+from bson.objectid import ObjectId
 
 from PIL import Image
 
@@ -22,7 +24,7 @@ from celery.execute import send_task
 # logging errors
 def on_failure_handler(self, exc, task_id, args, kwargs, einfo):
     logger = getScreenMain.get_logger(loglevel="ERROR", logfile="localWorkerErrors.log")
-    logger.error("Worker error: \n\tOS - {0} \n\tException: {1}".format(os.uname(), exc))
+    logger.error("Worker error: \n\tOS - {0} \n\tException: {1}".format(sys.platform, exc))
 
 @task(ignore_result=True)
 def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
@@ -34,6 +36,9 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
         
         connection = pymongo.Connection('176.9.24.81', 27017)
         db = connection.screener
+        
+        db.screen.update({'_id': ObjectId(rowId)}, {'$set': {'ready': 1}})
+        
         fs = gridfs.GridFS(db)
         
         fs.put(thumbImageData,  filename=rowId+"thumb")
@@ -178,4 +183,3 @@ def ResizeImage(fileNameOrig, size):
                 os.remove(fileName);
             except IOError, e:
                 raise Exception("Error while removing resized screenshot(temporary file): {0}.".format(str(e)))
-                
