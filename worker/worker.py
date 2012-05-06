@@ -47,7 +47,6 @@ def updateWorker(reason):
         wFile.close()
         
         # reload process
-        print "reload"
         _reload()
         
     except (HTTPError,URLError), e:
