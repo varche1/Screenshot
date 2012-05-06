@@ -60,7 +60,8 @@ class Application(tornado.web.Application):
         ]
         
         settings = dict(
-            cookie_secret=base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes),
+           #cookie_secret=base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes),
+            cookie_secret="UzXp/VGaSFe0vSEAGeub1V634K6gdklGnQVdw6Wl9ZE=",
             login_url="/auth",
         )
         
@@ -141,10 +142,11 @@ class MainHandler(BaseHandler):
     def get(self):
         
         mongo_conf = ScreenshotConfigs().GiveMongoConnectionConf()
+        ws_conf = ScreenshotConfigs().GiveWebSocketConf()
         
         loader = tornado.template.Loader(os.path.join(APP_DIR, 'templates'))
         self.set_cookie('socket_id', str(uuid.uuid4()))
-        self.write(loader.load("index.html").generate(mongo_conf = mongo_conf))
+        self.write(loader.load("index.html").generate(mongo_conf = mongo_conf, ws_host=ws_conf['host']))
 
 
 class SitesHandler(BaseHandler):
@@ -289,7 +291,6 @@ class ScreenHandler(BaseHandler):
             if (type(v) is not list):
                 self.data[k] = [v]
         
-        print self.data
         for pageId in self.data['pages']:
             response = yield tornado.gen.Task(self.db.pages.find_one, {'_id': self.strToObjectId(pageId)})
             page = self.getMongoResult(response)
@@ -301,18 +302,23 @@ class ScreenHandler(BaseHandler):
                 for resolutionId in self.data['resolution']:
                     criteria = {'page': pageId, 'system': system, 'browser': browser, 'version': version, 'resolution': resolutionId}
                     
+                    # add or update screensot
                     response = yield tornado.gen.Task(self.db.screen.update, criteria, dict(criteria.items() + {'ready': 0, 'images': {}}.items()), True)
                     result = self.getMongoResult(response)
                     
+                    # get screenshot ID to task
                     response = yield tornado.gen.Task(self.db.screen.find_one, criteria)
                     screen = self.getMongoResult(response)
                     rowId = screen['_id']
+                    
+                    # add task of taking screenshots
                     addTask(self.objectIdToStr(rowId), page['url'], pageId, system, browser, version, resolutionId, socket_id)
         
         response = yield tornado.gen.Task(self.db.screen.find, {'page': pageId})
         result = self.getMongoResult(response)
         
         self.response([self.objectIdToStr(item) for item in result], 0, True)
+        self.finish()
 
 
 class ImageHandler(BaseHandler):
@@ -343,25 +349,25 @@ class ImageHandler(BaseHandler):
         
         self.finish()
 
-class WebSocket(websocket.WebSocketHandler):
+#
+class WebSocket(BaseHandler, websocket.WebSocketHandler):
     def open(self):
         logging.info("WebSocket opened")
         
     def on_message(self, message):
-        socket_id = message
-        logging.info("WebSocket message: {0}".format(socket_id))
-        
-        self.application.webSocketsPool[socket_id] = self
+        socket_id = self.userId
+        logging.info("WebSocket message: {0}".format(message))
+        self.wsPool[socket_id] = self
 
     def on_close(self):
-        for key, value in self.application.webSocketsPool.items():
+        for key, value in self.wsPool.items():
             if value == self:
-                del self.application.webSocketsPool[key]
-                if self.application.tasksPool.has_key(key):
-                    del self.application.tasksPool[key]
-                
-        logging.info("WebSocket closed")
+                del self.wsPool[key]
+                if self.tasksPool.has_key(key):
+                    del self.tasksPool[key]
         
+        logging.info("WebSocket closed")
+
 class UpdateWorkerHandler(BaseHandler):
     def get(self):
         UpdateWorkerTask()
@@ -385,7 +391,7 @@ def addTask(rowId, pageUrl, pageId, system, browser, version, resolutionId, sock
         application.tasksPool[socket_id].append(asyncResult)
     else:
         application.tasksPool[socket_id] = [asyncResult]
-        
+
 @task
 def UpdateWorkerTask():
     """

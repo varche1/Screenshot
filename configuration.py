@@ -48,3 +48,12 @@ class ScreenshotConfigs():
             mongo['database'] = None
 
         return mongo
+    
+    def GiveWebSocketConf(self):
+        conf = {}
+        try:
+            conf['host'] = self.config.get('WebSocket', 'WS_HOST')
+        except ConfigParser.NoOptionError:
+            conf['host'] = None
+        
+        return conf

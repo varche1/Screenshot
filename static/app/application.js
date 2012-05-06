@@ -46,22 +46,15 @@ Ext.application({
         });
         
         //WebSockets
-        var socket = new WebSocket("ws://" + "web-shots.net:8888" + "/websocket");
-        
-        console.log(socket);
-        
-        socket.onopen = function(evt) {
-            console.log('Connection open ...');
-            socket.send(Ext.util.Cookies.get("socket_id"));
-        };
-        
-        socket.onclose = function(evt) {
-            console.log('Connection close ...');
-        };
-        
-        socket.onmessage = function(message) {
-            console.log(message);
-        };
+        if (WS_HOST) {
+            var socket = new WebSocket("ws://" + WS_HOST + "/websocket");
+            socket.onopen = function(evt) {
+                socket.send('init connection');
+            };
+            socket.onmessage = function(message) {
+                self.application.fireEvent('screenUpdate', Ext.decode(message.data));
+            };
+        }
     }
 });
 var Tools = {

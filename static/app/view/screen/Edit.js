@@ -23,12 +23,12 @@ Ext.define('Screener.view.screen.Edit', {
             ['Opera',    'op', ['10.5', '11']],
             ['Chrome',   'ch', ['12']]
         ]);
-        
+        /*
         var Ubuntu = getBrowserGroup('Ubuntu 11.10', 'ub', true, [
             ['Firefox',  'ff', ['3.6', '4']],
             ['Chrome',   'ch', ['16']]
         ]);
-        
+        */
         var Res = {
             xtype: 'fieldset',
             title: 'Разрешение экрана',
@@ -67,7 +67,7 @@ Ext.define('Screener.view.screen.Edit', {
             defaults: {
                 margins: '0 0 10 0'
             },
-            items: [Res, Win7, WinXP, Ubuntu]
+            items: [Res, Win7, WinXP]
         }];
 
         this.buttons = [{

@@ -67,8 +67,6 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
 
     except ConnectionFailure, e:
         raise Exception("Error while connecting to MongoDB: {0}.".format(str(e)))
-    except GridFSError, e:
-        raise Exception("Error while putting file to MongoDB: (rowId) - {0}, (Error) - {1}.".format(rowId, str(e)))
     except PyMongoError, e:
         raise Exception("Error while working with MongoDB: {0}.".format(str(e)))
     except Exception, e:
