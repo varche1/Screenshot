@@ -21,6 +21,7 @@ class ScreenshotConfigs():
         
         try:
             tornado['checktacks_time'] = self.config.get('Tornado', 'TORNADO_CHECKTASKS_TIME')
+            tornado['checkworkers_time'] = self.config.get('Tornado', 'TORNADO_CHECKWORKERS_TIME')
         except ConfigParser.NoOptionError:
             tornado['checktacks_time'] = None
 

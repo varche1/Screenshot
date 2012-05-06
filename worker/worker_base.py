@@ -2,6 +2,7 @@
 import os
 import sys
 import random
+import base64
 
 from selenium import selenium
 from selenium import webdriver
@@ -14,38 +15,56 @@ import pymongo
 import gridfs
 from pymongo.errors import ConnectionFailure, PyMongoError
 from gridfs.errors import GridFSError
+from bson import BSON
 from bson.objectid import ObjectId
 
 from PIL import Image
 
 from celery.task import task
 from celery.execute import send_task
+from celery.loaders.default import Loader
+from celery.exceptions import RetryTaskError, MaxRetriesExceededError
 
 # logging errors
 def on_failure_handler(self, exc, task_id, args, kwargs, einfo):
-    logger = getScreenMain.get_logger(loglevel="ERROR", logfile="localWorkerErrors.log")
+    logger = self.get_logger(loglevel="ERROR", logfile="localWorkerErrors.log")
     logger.error("Worker error: \n\tOS - {0} \n\tException: {1}".format(sys.platform, exc))
 
-@task(ignore_result=True)
+#@task(ignore_result=True)
 def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
     try:
+        config = Loader().read_configuration()
+        
         fileName = getScreenImage(pageUrl, browser, resolution)
         
-        thumbImageData  = ResizeImage(fileName, (100, 100))
-        normalImageData = ResizeImage(fileName, (1000, 0))
+        thumbnailImageData = ResizeImage(fileName,
+            (config["SCREENSHOT_THUMB_SIZE"]["width"],
+            config["SCREENSHOT_THUMB_SIZE"]["height"]))
+        mediumImageData = ResizeImage(fileName,
+            (config["SCREENSHOT_MEDIUM_SIZE"]["width"],
+            config["SCREENSHOT_MEDIUM_SIZE"]["height"]))
+        originalImageData = ResizeImage(fileName,
+            (config["SCREENSHOT_ORIGINAL_SIZE"]["width"],
+            config["SCREENSHOT_ORIGINAL_SIZE"]["width"]))
         
-        connection = pymongo.Connection('176.9.24.81', 27017)
+        connection = pymongo.Connection(
+            config["CELERY_MONGODB_BACKEND_SETTINGS"]["host"],
+            config["CELERY_MONGODB_BACKEND_SETTINGS"]["port"])
         db = connection.screener
         
-        db.screen.update({'_id': ObjectId(rowId)}, {'$set': {'ready': 1}})
+        data = {
+            'ready': 1,
+            'image' : {
+                'thumbnail': BSON.encode({'data': base64.b64encode(thumbImageData)}),
+                'medium': BSON.encode({'data': base64.b64encode(mediumImageData)}),
+                'original': BSON.encode({'data': base64.b64encode(originalImageData)})
+            }
+        }
         
-        fs = gridfs.GridFS(db)
-        
-        fs.put(thumbImageData,  filename=rowId+"thumb")
-        fs.put(normalImageData, filename=rowId+"normal")
+        db.screen.update({'_id': ObjectId(rowId)}, {'$set': data})
         
         return {'resolution' : resolution, 'page' : pageId, 'browser' : browser, '_id' : rowId, 'socket_id' : socket_id}
-    
+
     except ConnectionFailure, e:
         raise Exception("Error while connecting to MongoDB: {0}.".format(str(e)))
     except GridFSError, e:
@@ -65,7 +84,7 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
             except IOError, e:
                 raise Exception("Error while removing original screenshot(temporary file): {0}.".format(str(e)))
 
-@task(ignore_result=True)
+#@task(ignore_result=True)
 def getScreenImage(url, browser, resolution):
     try:
         # cheking URL
@@ -129,9 +148,11 @@ def getScreenImage(url, browser, resolution):
     except Exception, e:
         raise Exception(str(e))
 
-@task(ignore_result=True)
+#@task(ignore_result=True)
 def ResizeImage(fileNameOrig, size):
     try:
+        config = Loader().read_configuration()
+        
         # checking size
         if (size <= 0):
             raise Exception("Size {0} is malformed.".format(size))
@@ -145,7 +166,8 @@ def ResizeImage(fileNameOrig, size):
         # resizing image    
         iSize = image.size   
         try:
-            resImage = image.resize((size[0], int(iSize[1] / (float(iSize[0]) / size[0]) )), Image.ANTIALIAS)
+            if (size[0]):
+                resImage = image.resize((size[0], int(iSize[1] / (float(iSize[0]) / size[0]) )), Image.ANTIALIAS)
         except Exception, e:
             raise Exception("Error while resizing original screenshot: (Size) - {0}, (Error) - {1}.".format(size, str(e)))    
         
@@ -155,31 +177,8 @@ def ResizeImage(fileNameOrig, size):
                 resImage = resImage.crop((0, 0, size[0], size[1]))
         except Exception, e:
             raise Exception("Error while croping original screenshot: (Size) - {0}, (Error) - {1}.".format(size, str(e)))    
-         
-        # saving image     
-        fileName = '{0}_{1}.jpeg'.format(random.randrange(1, 99999), random.randrange(1, 99999))
-        try:
-            resImage.save(fileName, "JPEG", quality=85)
-        except IOError, e:
-            raise Exception("Error while saving resized screenshot: {0}.".format(str(e)))
         
-        # opening resized image to the memory
-        try:
-            resultFile = open(fileName, "rb")
-            data = resultFile.read();
-            resultFile.close();
-        except IOError, e:
-            raise Exception("Error while opening resized screenshot: {0}.".format(str(e)))
-            
-        return data;
+        return resImage.tostring('jpeg', quality=config["SCREENSHOT_QUALITY"])
     
     except Exception, e:
         raise Exception(str(e))
-    finally:
-        if 'fileName' in locals():
-            
-            # removing temporary file
-            try:
-                os.remove(fileName);
-            except IOError, e:
-                raise Exception("Error while removing resized screenshot(temporary file): {0}.".format(str(e)))

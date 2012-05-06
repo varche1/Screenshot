@@ -16,5 +16,7 @@ CELERY_MONGODB_BACKEND_SETTINGS = {
     "taskmeta_collection": "celery_result",
 }
 
-# Additional settings
-CELERY_IMPORTS = ("server", ) 
+# workers list
+WORKERS = [
+    'ubuntu_ff_4_1'
+]
