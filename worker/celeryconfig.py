@@ -31,8 +31,9 @@ SCREENSHOT_MEDIUM_SIZE = {"width": 800, "height": 0}
 SCREENSHOT_ORIGINAL_SIZE = {"width": 0, "height": 0}
 SCREENSHOT_QUALITY = 90
 
-BASE_WORKER_URL = 'https://raw.github.com/varche1/Screenshot/master/worker/worker_base.py'
+# Update options
+BASE_WORKER_URL = 'https://raw.github.com/stepler/Screenshot/master/worker/worker_base.py'
 BASE_WORKER_MODULE = 'worker_base.py'
 
-CELERYCONFIG_URL = 'https://raw.github.com/varche1/Screenshot/master/worker/celeryconfig.py'
+CELERYCONFIG_URL = 'https://raw.github.com/stepler/Screenshot/master/worker/celeryconfig.py'
 CELERYCONFIG_MODULE = 'celeryconfig.py'
