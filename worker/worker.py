@@ -56,5 +56,3 @@ def updateWorker(reason):
             raise Exception("Error saving source file: {0}.".format(str(e)))
     except Exception, e:
         raise Exception("Error while updating: {0}.".format(str(e)))
-        
-    

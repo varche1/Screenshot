@@ -23,6 +23,7 @@ Ext.define('Screener.view.screen.Edit', {
             ['Opera',    'op', ['10.5', '11']],
             ['Chrome',   'ch', ['12']]
         ]);
+        
         /*
         var Ubuntu = getBrowserGroup('Ubuntu 11.10', 'ub', true, [
             ['Firefox',  'ff', ['3.6', '4']],
