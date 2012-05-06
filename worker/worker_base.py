@@ -177,7 +177,23 @@ def ResizeImage(fileNameOrig, size):
         except Exception, e:
             raise Exception("Error while croping original screenshot: (Size) - {0}, (Error) - {1}.".format(size, str(e)))    
         
-        return resImage.tostring('jpeg', quality=config["SCREENSHOT_QUALITY"])
+        # return resImage.tostring('jpeg', quality=config["SCREENSHOT_QUALITY"])
+        # saving image     
+        fileName = '{0}_{1}.jpeg'.format(random.randrange(1, 99999), random.randrange(1, 99999))
+        try:
+            resImage.save(fileName, "JPEG", quality=85)
+        except IOError, e:
+            raise Exception("Error while saving resized screenshot: {0}.".format(str(e)))
+        
+        # opening resized image to the memory
+        try:
+            resultFile = open(fileName, "rb")
+            data = resultFile.read();
+            resultFile.close();
+        except IOError, e:
+            raise Exception("Error while opening resized screenshot: {0}.".format(str(e)))
+            
+        return data;
     
     except Exception, e:
         raise Exception(str(e))

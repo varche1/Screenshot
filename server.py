@@ -318,7 +318,6 @@ class ScreenHandler(BaseHandler):
         result = self.getMongoResult(response)
         
         self.response([self.objectIdToStr(item) for item in result], 0, True)
-        self.finish()
 
 
 class ImageHandler(BaseHandler):
