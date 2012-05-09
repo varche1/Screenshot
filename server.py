@@ -10,7 +10,6 @@ import tornado.auth
 import tornado.options
 from tornado import websocket
 
-
 from configuration import ScreenshotConfigs
 
 import sys, os
