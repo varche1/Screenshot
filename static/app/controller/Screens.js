@@ -79,8 +79,8 @@ Ext.define('Screener.controller.Screens', {
         var result = {'wait': [], 'ready': []};
         Ext.each(data.results, function(value, key) {
             value.resolution = value.resolution.replace('_', '*');
-            value.imageUrl   = '/image?screen=%p%&type=normal'.replace('%p%', value._id);
-            value.thumbUrl   = '/image?screen=%p%&type=thumb'.replace('%p%', value._id);
+            value.imageUrl   = '/image?screen=%p%&type=medium'.replace('%p%', value._id);
+            value.thumbUrl   = '/image?screen=%p%&type=thumbnail'.replace('%p%', value._id);
             
             if (value.ready)
                 result.ready.push(value);

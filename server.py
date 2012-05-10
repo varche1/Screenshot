@@ -270,7 +270,7 @@ class ScreenHandler(BaseHandler):
             self.response("arguments not found", 10, False)
             return
         
-        response = yield tornado.gen.Task(self.db.screen.find, {'page': self.arguments['page']})
+        response = yield tornado.gen.Task(self.db.screen.find, {'page': self.arguments['page']}, fields={'_id': 1, 'page': 1, 'system': 1, 'browser': 1, 'version': 1, 'resolution': 1})
         result = self.getMongoResult(response)
         
         self.response([self.objectIdToStr(item) for item in result], 0, True)
@@ -328,22 +328,23 @@ class ImageHandler(BaseHandler):
             self.response("arguments not found", 10, False)
             return
         
-        response = yield tornado.gen.Task(self.db.screen.find_one, {'_id': self.strToObjectId(self.arguments['screen'])})
+        imgageType = self.arguments['type']
+        if imgageType not in ('thumbnail', 'medium', 'original'):
+            self.response("Undefined image type", 10, False)
+            return
+        
+        response = yield tornado.gen.Task(self.db.screen.find_one, {'_id': self.strToObjectId(self.arguments['screen'])}, fields={'images.%s'%imgageType: 1, 'ready': 1})
         screen = self.getMongoResult(response)
-        print self.db
-        self.finish()
-        return
+        
         if screen['ready'] == 0:
             self.redirect('/static/img/wait.jpg')
         
+        elif not screen['images'].has_key(imgageType):
+            self.redirect('/static/img/not-found.jpg')
+        
         else:
-            fs = gridfs.GridFS(self.db)
-            try:
-                image = fs.get_version(self.arguments['screen'] + self.arguments['type'])
-                self.set_header("Content-Type", 'image/jpeg')
-                self.write(image.read())
-            except:
-                self.redirect('/static/img/not-found.jpg')
+            self.set_header("Content-Type", 'image/jpeg')
+            self.write(screen['image'][imgageType])
         
         self.finish()
 
@@ -404,7 +405,8 @@ def checkTasksState():
         for task in application.tasksPool[socket_id]:
             if task.status == 'SUCCESS':
                 #logging.info("RESULT SUCCESSFULL: {0}".format(task.result))
-                application.webSocketsPool[socket_id].write_message(task.result)
+                if application.webSocketsPool.has_key(socket_id):
+                    application.webSocketsPool[socket_id].write_message(task.result)
                 application.tasksPool[socket_id].remove(task)
             #elif task.status == 'RETRY':
                 #logging.info("TASK RETRY: {0}".format(task.result))

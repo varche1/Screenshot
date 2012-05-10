@@ -50,9 +50,9 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
         
         updateData = {
             'ready': 1,
-            'image.thumbnail': bson.binary.Binary(thumbnailImageData),
-            'image.medium': bson.binary.Binary(mediumImageData),
-            'image.original': bson.binary.Binary(originalImageData)
+            'images.thumbnail': bson.binary.Binary(thumbnailImageData),
+            'images.medium': bson.binary.Binary(mediumImageData),
+            'images.original': bson.binary.Binary(originalImageData)
         }
         db.screen.update({'_id': ObjectId(rowId)}, {'$set': updateData})
         
