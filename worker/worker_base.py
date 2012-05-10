@@ -16,7 +16,7 @@ import pymongo
 import gridfs
 from pymongo.errors import ConnectionFailure, PyMongoError
 from gridfs.errors import GridFSError
-from bson import BSON
+import bson
 from bson.objectid import ObjectId
 
 from PIL import Image
@@ -53,16 +53,13 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
             config["CELERY_MONGODB_BACKEND_SETTINGS"]["port"])
         db = connection.screener
         
-        data = {
+        updateData = {
             'ready': 1,
-            'image' : {
-                'thumbnail': BSON.encode({'data': base64.b64encode(thumbImageData)}),
-                'medium': BSON.encode({'data': base64.b64encode(mediumImageData)}),
-                'original': BSON.encode({'data': base64.b64encode(originalImageData)})
-            }
+            'image.thumbnail': bson.binary.Binary(thumbnailImageData),
+            'image.medium': bson.binary.Binary(mediumImageData),
+            'image.original': bson.binary.Binary(originalImageData)
         }
-        
-        db.screen.update({'_id': ObjectId(rowId)}, {'$set': data})
+        db.screen.update({'_id': ObjectId(rowId)}, {'$set': updateData})
         
         return {'resolution' : resolution, 'page' : pageId, 'browser' : browser, '_id' : rowId, 'socket_id' : socket_id}
 
@@ -133,14 +130,8 @@ def getScreenImage(url, browser, resolution):
         driver.set_window_size(res[0], res[1])
         driver.get(url.geturl())
         
-        # taking screenshot
-        fileName = '{0}_{1}.jpeg'.format(random.randrange(1, 99999), random.randrange(1, 99999))
-        if (not(driver.get_screenshot_as_file(fileName))):
-            raise Exception("Error while taking/saving screenshot: (Browser) - {0}, (URL) - {1}, (File Name) - {2}.".format(driver.name, driver.current_url, fileName))
-        
-        driver.close()
-        
-        return fileName
+        # taking data of screenshot
+        return driver.get_screenshot_as_base64()
     
     except  WebDriverException, e:
         raise Exception("Browser\'s error: {0}.".format(str(e)))
@@ -148,7 +139,7 @@ def getScreenImage(url, browser, resolution):
         raise Exception(str(e))
 
 #@task(ignore_result=True)
-def ResizeImage(fileNameOrig, size):
+def ResizeImage(screenData, size):
     try:
         config = Loader().read_configuration()
         
@@ -158,7 +149,7 @@ def ResizeImage(fileNameOrig, size):
         
         # opening image
         try:
-            image = Image.open(fileNameOrig)
+            image = Image.open(StringIO(screenData))
         except IOError, e:
             raise Exception("Error while opening original screenshot: {0}.".format(str(e)))
         
@@ -177,23 +168,14 @@ def ResizeImage(fileNameOrig, size):
         except Exception, e:
             raise Exception("Error while croping original screenshot: (Size) - {0}, (Error) - {1}.".format(size, str(e)))    
         
-        # return resImage.tostring('jpeg', quality=config["SCREENSHOT_QUALITY"])
-        # saving image     
-        fileName = '{0}_{1}.jpeg'.format(random.randrange(1, 99999), random.randrange(1, 99999))
-        try:
-            resImage.save(fileName, "JPEG", quality=85)
-        except IOError, e:
-            raise Exception("Error while saving resized screenshot: {0}.".format(str(e)))
+        # get image data
+        FileIOStr = StringIO()
+        resImage.save(FileIOStr, "JPEG", quality=95)
         
-        # opening resized image to the memory
-        try:
-            resultFile = open(fileName, "rb")
-            data = resultFile.read();
-            resultFile.close();
-        except IOError, e:
-            raise Exception("Error while opening resized screenshot: {0}.".format(str(e)))
-            
-        return data;
+        data = FileIOStr.getvalue()
+        FileIOStr.close()
+        
+        return data
     
     except Exception, e:
         raise Exception(str(e))
