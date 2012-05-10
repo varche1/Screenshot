@@ -14,7 +14,7 @@ try:
 except ImportError:
     signal = None
 
-@task(on_failure = worker_base.on_failure_handler, max_retries=3, default_retry_delay=10)
+@task(on_failure = worker_base.on_failure_handler, max_retries=0, default_retry_delay=10)
 def getScreen(rowId, pageUrl, pageId, browser, resolution, socket_id):
     try:
         return worker_base.getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id)

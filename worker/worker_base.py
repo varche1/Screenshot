@@ -5,21 +5,20 @@ import sys
 import random
 import base64
 
+from urlparse import urlparse
+from urllib2 import Request, urlopen, URLError, HTTPError
+
 from selenium import selenium
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 
-from urlparse import urlparse
-from urllib2 import Request, urlopen, URLError, HTTPError
-
 import pymongo
-import gridfs
 from pymongo.errors import ConnectionFailure, PyMongoError
-from gridfs.errors import GridFSError
 import bson
 from bson.objectid import ObjectId
 
 from PIL import Image
+from StringIO import StringIO
 
 from celery.task import task
 from celery.execute import send_task
