@@ -119,6 +119,7 @@ def getScreenImage(url, browser, resolution):
         
         # taking data of screenshot
         screenB64 = driver.get_screenshot_as_base64()
+        driver.close()
         if not screenB64:
             raise Exception("Screenshot doesn't get")
         
