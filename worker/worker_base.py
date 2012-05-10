@@ -31,20 +31,19 @@ def on_failure_handler(self, exc, task_id, args, kwargs, einfo):
     logger = self.get_logger(loglevel="ERROR", logfile="localWorkerErrors.log")
     logger.error("Worker error: \n\tOS - {0} \n\tException: {1}".format(sys.platform, exc))
 
-#@task(ignore_result=True)
 def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
     try:
         config = Loader().read_configuration()
         
-        fileName = getScreenImage(pageUrl, browser, resolution)
+        screenData = getScreenImage(pageUrl, browser, resolution)
         
-        thumbnailImageData = ResizeImage(fileName,
+        thumbnailImageData = ResizeImage(screenData,
             (config["SCREENSHOT_THUMB_SIZE"]["width"],
             config["SCREENSHOT_THUMB_SIZE"]["height"]))
-        mediumImageData = ResizeImage(fileName,
+        mediumImageData = ResizeImage(screenData,
             (config["SCREENSHOT_MEDIUM_SIZE"]["width"],
             config["SCREENSHOT_MEDIUM_SIZE"]["height"]))
-        originalImageData = ResizeImage(fileName,
+        originalImageData = ResizeImage(screenData,
             (config["SCREENSHOT_ORIGINAL_SIZE"]["width"],
             config["SCREENSHOT_ORIGINAL_SIZE"]["width"]))
         
@@ -72,15 +71,7 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
     finally:
         if 'connection' in locals(): 
             connection.disconnect()
-        
-        # removing temporary file    
-        if 'fileName' in locals(): 
-            try:
-                os.remove(fileName);
-            except IOError, e:
-                raise Exception("Error while removing original screenshot(temporary file): {0}.".format(str(e)))
 
-#@task(ignore_result=True)
 def getScreenImage(url, browser, resolution):
     try:
         # cheking URL
@@ -138,7 +129,6 @@ def getScreenImage(url, browser, resolution):
     except Exception, e:
         raise Exception(str(e))
 
-#@task(ignore_result=True)
 def ResizeImage(screenData, size):
     try:
         config = Loader().read_configuration()
