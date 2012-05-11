@@ -12,7 +12,7 @@ Ext.define('Screener.controller.Screens', {
     
     tpl: Ext.create('Ext.XTemplate',
         '<tpl for="ready">',
-            '<div class="screenshot" id="{id}">',
+            '<div class="screenshot {browser} {system}" id="{id}">',
                 '<span><b class="browser browser-{browser}">{version}</b></span>',
                 '<span>{resolution}</span>',
                 '<a href="{imageUrl}" target="_blank">',
@@ -21,7 +21,7 @@ Ext.define('Screener.controller.Screens', {
             '</div>',
         '</tpl>',
         '<tpl for="wait">',
-            '<div class="screenshot" id="{id}">',
+            '<div class="screenshot {browser} {system}" id="{id}">',
                 '<span><b class="browser browser-{browser}">{version}</b></span>',
                 '<span>{resolution}</span>',
                 '<img src="{thumbUrl}" />',
@@ -37,13 +37,27 @@ Ext.define('Screener.controller.Screens', {
     ),
     
     init: function() {
-        this.control({});
+        this.control({
+            'screenlist button[action=filter-os]': {
+                click: this.filterScreens
+            },
+            'screenlist button[action=filter-browser]': {
+                click: this.filterScreens
+            },
+        });
         
         this.application.on({
             screenload: this.onScreensLoad,
             screenUpdate: this.onScreensUpdate,
             scope: this
         });
+    },
+    
+    filterScreens: function(button) {
+        var list = Ext.DomQuery.select('.'+button.value);
+        var action = !button.pressed ? 'show' : 'hide' ;
+        for (i=0,m=list.length; i<m; i++)
+            Ext.get(list[i]).setVisibilityMode(2)[action]();
     },
     
     onScreensLoad: function(page) {
@@ -79,8 +93,8 @@ Ext.define('Screener.controller.Screens', {
         var result = {'wait': [], 'ready': []};
         Ext.each(data.results, function(value, key) {
             value.resolution = value.resolution.replace('_', '*');
-            value.imageUrl   = '/image?screen=%p%&type=medium'.replace('%p%', value._id);
-            value.thumbUrl   = '/image?screen=%p%&type=thumbnail'.replace('%p%', value._id);
+            value.imageUrl   = '/image?screen=%s%&type=medium&%rh%'.replace('%s%', value._id).replace('%rh%', value.random_hex);
+            value.thumbUrl   = '/image?screen=%s%&type=thumbnail&%rh%'.replace('%s%', value._id).replace('%rh%', value.random_hex);
             
             if (value.ready)
                 result.ready.push(value);

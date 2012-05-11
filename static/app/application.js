@@ -12,8 +12,9 @@ Ext.application({
                 xtype: 'box',
                 id: 'header',
                 region: 'north',
-                html: '<h1> Ext.Layout.Browser</h1>',
-                height: 30
+                margins: '5 0 0 10',
+                html: '<h1>Web-shots.net</h1>',
+                height: 20
             },{
                 layout: 'fit',
                 id: 'layout-browser',

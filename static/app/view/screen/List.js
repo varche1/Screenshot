@@ -9,34 +9,53 @@ Ext.define('Screener.view.screen.List', {
             xtype: 'toolbar',
             items: [{
                 xtype: 'button',
-                text:'Add',
-                iconCls: 'page-add',
-                action: 'add',
-                disabled: true
+                text:'Win7',
+                iconCls: 'os-win7',
+                action: 'filter-os',
+                value: 'win7',
+                enableToggle: true
             },{
                 xtype: 'button',
-                text: 'Edit',
-                iconCls: 'page-edit',
-                action: 'edit',
-                disabled: true
+                text:'WinXP',
+                iconCls: 'os-winxp',
+                action: 'filter-os',
+                value: 'winxp',
+                enableToggle: true
+            },'-',{
+                xtype: 'button',
+                text: 'Firefox',
+                iconCls: 'browser-ff',
+                action: 'filter-browser',
+                value: 'ff',
+                enableToggle: true
             },{
                 xtype: 'button',
-                text: 'Delete',
-                iconCls: 'page-delete',
-                action: 'delete',
-                disabled: true
+                text: 'IE',
+                iconCls: 'browser-ie',
+                action: 'filter-browser',
+                value: 'ie',
+                enableToggle: true
             },{
                 xtype: 'button',
-                text: 'Filter shots',
-                iconCls: 'shots-filter',
-                action: 'shots-filter',
-                disabled: true
+                text: 'Opera',
+                iconCls: 'browser-op',
+                action: 'filter-browser',
+                value: 'op',
+                enableToggle: true
             },{
                 xtype: 'button',
-                text: 'Make shots',
-                iconCls: 'shots-make',
-                action: 'shots-make',
-                disabled: true
+                text: 'Chrome',
+                iconCls: 'browser-ch',
+                action: 'filter-browser',
+                value: 'ch',
+                enableToggle: true
+            },{
+                xtype: 'button',
+                text: 'Safari',
+                iconCls: 'browser-sf',
+                action: 'filter-browser',
+                value: 'sf',
+                enableToggle: true
             }]
         }];
         

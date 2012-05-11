@@ -4,6 +4,7 @@ import os
 import sys
 import random
 import base64
+import uuid
 
 from urlparse import urlparse
 from urllib2 import Request, urlopen, URLError, HTTPError
@@ -50,6 +51,7 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
         
         updateData = {
             'ready': 1,
+            'random_hex': uuid.uuid4().hex,
             'images.thumbnail': bson.binary.Binary(thumbnailImageData),
             'images.medium': bson.binary.Binary(mediumImageData),
             'images.original': bson.binary.Binary(originalImageData)

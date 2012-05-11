@@ -17,6 +17,7 @@ import json
 import uuid
 import logging
 import base64
+import time
 
 import pymongo, gridfs
 import asyncmongo
@@ -144,7 +145,7 @@ class MainHandler(BaseHandler):
         ws_conf = ScreenshotConfigs().GiveWebSocketConf()
         
         loader = tornado.template.Loader(os.path.join(APP_DIR, 'templates'))
-        self.set_cookie('socket_id', str(uuid.uuid4()))
+        self.set_cookie('socket_id', uuid.uuid4().hex)
         self.write(loader.load("index.html").generate(mongo_conf = mongo_conf, ws_host=ws_conf['host']))
 
 
@@ -263,6 +264,7 @@ class PagesHandler(SitesHandler):
 
 class ScreenHandler(BaseHandler):
     
+    MongoReqListFields = {'_id': 1, 'page': 1, 'system': 1, 'browser': 1, 'version': 1, 'resolution': 1, 'ready': 1, 'random_hex': 1}
     @tornado.web.asynchronous
     @tornado.gen.engine
     def get(self):
@@ -270,7 +272,7 @@ class ScreenHandler(BaseHandler):
             self.response("arguments not found", 10, False)
             return
         
-        response = yield tornado.gen.Task(self.db.screen.find, {'page': self.arguments['page']}, fields={'_id': 1, 'page': 1, 'system': 1, 'browser': 1, 'version': 1, 'resolution': 1})
+        response = yield tornado.gen.Task(self.db.screen.find, {'page': self.arguments['page']}, fields=self.MongoReqListFields)
         result = self.getMongoResult(response)
         
         self.response([self.objectIdToStr(item) for item in result], 0, True)
@@ -302,7 +304,7 @@ class ScreenHandler(BaseHandler):
                     criteria = {'page': pageId, 'system': system, 'browser': browser, 'version': version, 'resolution': resolutionId}
                     
                     # add or update screensot
-                    response = yield tornado.gen.Task(self.db.screen.update, criteria, dict(criteria.items() + {'ready': 0, 'images': {}}.items()), True)
+                    response = yield tornado.gen.Task(self.db.screen.update, criteria, dict(criteria.items() + {'ready': 0, 'images': {}, 'random_hex': uuid.uuid4().hex}.items()), True)
                     result = self.getMongoResult(response)
                     
                     # get screenshot ID to task
@@ -313,7 +315,7 @@ class ScreenHandler(BaseHandler):
                     # add task of taking screenshots
                     addTask(self.objectIdToStr(rowId), page['url'], pageId, system, browser, version, resolutionId, socket_id)
         
-        response = yield tornado.gen.Task(self.db.screen.find, {'page': pageId})
+        response = yield tornado.gen.Task(self.db.screen.find, {'page': pageId}, fields=self.MongoReqListFields)
         result = self.getMongoResult(response)
         
         self.response([self.objectIdToStr(item) for item in result], 0, True)
@@ -344,7 +346,7 @@ class ImageHandler(BaseHandler):
         
         else:
             self.set_header("Content-Type", 'image/jpeg')
-            self.write(screen['image'][imgageType])
+            self.write(screen['images'][imgageType])
         
         self.finish()
 

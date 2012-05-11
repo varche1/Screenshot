@@ -41,9 +41,6 @@ Ext.define('Screener.controller.Pages', {
             'pagelist button[action=shots-make]': {
                 click: this.makeShots
             },
-            'pagelist button[action=test-btn]': {
-                click: function(){ self.application.fireEvent('screenUpdate', Ext.decode('{"socket_id": "e6a758c4-99d2-4d0a-bfcd-ec2649a80116", "_id": "4f8fea98934c2b4362000000", "resolution": "1280_1024", "page": "4f706a54934c2b5051000002", "browser": "win7_ff_3.6"}')); }
-            },
             'pageedit button[action=save]': {
                 click: this.updatePage
             },
@@ -134,7 +131,6 @@ Ext.define('Screener.controller.Pages', {
     saveFilter: function(button) {
         var values = button.up('window').down('form').getValues();
         this.params.filer = values;
-        log(values);
         this.getPageList().down('button[action=shots-make]').setDisabled(false);
     },
     
@@ -150,11 +146,14 @@ Ext.define('Screener.controller.Pages', {
         }
         
         filter.pages = Tools.getFieldFromModels(selection, '_id');
+        var ScreensConstoller = this.getController('Screens');
         
         Ext.Ajax.request({
             url: '/screen',
             params: Ext.encode(filter),
-            success: function(response){}
+            success: function(response){
+                ScreensConstoller.updateScreens(Ext.decode(response.responseText));
+            }
         });
     }
 });
