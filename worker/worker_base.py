@@ -26,12 +26,7 @@ from celery.execute import send_task
 from celery.loaders.default import Loader
 from celery.exceptions import RetryTaskError, MaxRetriesExceededError
 
-# logging errors
-def on_failure_handler(self, exc, task_id, args, kwargs, einfo):
-    logger = self.get_logger(loglevel="ERROR", logfile="localWorkerErrors.log")
-    logger.error("Worker error: \n\tOS - %s \n\tException: %s" % (sys.platform, exc))
-
-def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
+def getScreenMain(rowId, pageUrl, pageId, system, browser, version, resolution, socket_id):
     try:
         config = Loader().read_configuration()
         
@@ -58,7 +53,7 @@ def getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id):
         }
         db.screen.update({'_id': ObjectId(rowId)}, {'$set': updateData})
         
-        return {'resolution' : resolution, 'page' : pageId, 'browser' : browser, '_id' : rowId, 'socket_id' : socket_id}
+        return {'_id':rowId, 'page': pageId, 'system':system, 'browser':browser, 'version':version, 'resolution':resolution, 'ready':1, 'socket_id':socket_id}
 
     except ConnectionFailure, e:
         raise Exception("Error while connecting to MongoDB: %s." % str(e))

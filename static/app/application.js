@@ -5,6 +5,7 @@ Ext.application({
     
     controllers: ['Sites', 'Pages', 'Screens'],
     launch: function() {
+        var self = this;
         Ext.create('Ext.Viewport', {
             layout: 'border',
             title: 'Ext Layout Browser',
@@ -53,7 +54,8 @@ Ext.application({
                 socket.send('init connection');
             };
             socket.onmessage = function(message) {
-                self.application.fireEvent('screenUpdate', Ext.decode(message.data));
+                log(message)
+                self.fireEvent('screenUpdate', Ext.decode(message.data));
             };
         }
     }

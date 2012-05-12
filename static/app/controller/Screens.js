@@ -12,7 +12,7 @@ Ext.define('Screener.controller.Screens', {
     
     tpl: Ext.create('Ext.XTemplate',
         '<tpl for="ready">',
-            '<div class="screenshot {browser} {system}" id="{id}">',
+            '<div class="screenshot {browser} {system}" id="{_id}">',
                 '<span><b class="browser browser-{browser}">{version}</b></span>',
                 '<span>{resolution}</span>',
                 '<a href="{imageUrl}" target="_blank">',
@@ -21,7 +21,7 @@ Ext.define('Screener.controller.Screens', {
             '</div>',
         '</tpl>',
         '<tpl for="wait">',
-            '<div class="screenshot {browser} {system}" id="{id}">',
+            '<div class="screenshot {browser} {system}" id="{_id}">',
                 '<span><b class="browser browser-{browser}">{version}</b></span>',
                 '<span>{resolution}</span>',
                 '<img src="{thumbUrl}" />',
@@ -78,11 +78,14 @@ Ext.define('Screener.controller.Screens', {
     },
     
     onScreensUpdate: function(data) {
+        if (typeof(data) != 'object')
+            return;
+        
         data = this.prepareData({results: [data]})
         var self = this;
         var view = this.getScreenList();
-        Ext.Object.each(data, function(key, value) {
-            var screen = Ext.DomQuery.select('#'+value.id);
+        Ext.Object.each(data.ready, function(key, value) {
+            var screen = Ext.DomQuery.select('#'+value._id);
             if (screen.length)
                 self.tpl.overwrite(screen[0], {'update':value});
         });

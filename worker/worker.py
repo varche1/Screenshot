@@ -1,50 +1,42 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
 import worker_base
 from urllib2 import urlopen, HTTPError,URLError
 from celery.task import task
 from celery.loaders.default import Loader
 from celery.exceptions import RetryTaskError, MaxRetriesExceededError, SoftTimeLimitExceeded
 
-# Loading libraries needed to restart windows
+# Loading libraries needed to restart celery process
 import subprocess
-import sys
-import os
 try:
     import signal
 except ImportError:
     signal = None
 
-@task(on_failure = worker_base.on_failure_handler, max_retries=0, default_retry_delay=10)
-def getScreen(rowId, pageUrl, pageId, browser, resolution, socket_id):
-    try:
-        return worker_base.getScreenMain(rowId, pageUrl, pageId, browser, resolution, socket_id)
-    except RetryTaskError, e:
-        pass
-    except MaxRetriesExceededError, e:
-        pass
-    except SoftTimeLimitExceeded, e:
-         raise Exception(str(e))
-    except Exception, e:
-        getScreen.retry(exc=e)
+# logging errors
+def on_failure_handler(self, exc, task_id, args, kwargs, einfo):
+    logger = self.get_logger(loglevel="ERROR", logfile="localWorkerErrors.log")
+    logger.error("Worker error: \n\tOS - %s \n\tException: %s" % (sys.platform, exc))
 
-@task(on_failure = worker_base.on_failure_handler)
+@task(on_failure = on_failure_handler)
+def getScreen(*args, **kwargs):
+    return worker_base.getScreenMain(*args, **kwargs)
+
+@task(on_failure = on_failure_handler)
 def updateWorker(reason):    
     try:
         config = Loader().read_configuration()
         
         # update base_worker
-        response = urlopen(config['BASE_WORKER_URL'])
         
-        wFile = open(config['BASE_WORKER_MODULE'], 'w')
-        wFile.write(response.read())
-        wFile.close()
-        
-        # update celery config
-        response = urlopen(config['CELERYCONFIG_URL'])
-        
-        wFile = open(config['CELERYCONFIG_MODULE'], 'w')
-        wFile.write(response.read())
-        wFile.close()
+        for F in config['UPDATE_FILES']:
+            response = urlopen(F['url'])
+            if not response:
+                continue
+            updFile = open(os.path.join(config['ROOT_WORKER_FOLDER'], F['file']), 'w')
+            updFile.write(response.read())
+            updFile.close()
         
         # reload process
         _reload()

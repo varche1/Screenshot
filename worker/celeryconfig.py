@@ -32,8 +32,10 @@ SCREENSHOT_ORIGINAL_SIZE = {"width": 0, "height": 0}
 SCREENSHOT_QUALITY = 90
 
 # Update options
-BASE_WORKER_URL = 'https://raw.github.com/stepler/Screenshot/master/worker/worker_base.py'
-BASE_WORKER_MODULE = 'worker_base.py'
-
-CELERYCONFIG_URL = 'https://raw.github.com/stepler/Screenshot/master/worker/celeryconfig.py'
-CELERYCONFIG_MODULE = 'celeryconfig.py'
+ROOT_WORKER_FOLDER = r'C:\WebShots\Worker'
+UPDATE_FILES = [
+    {'file': r'worker.py', 'url': r'https://raw.github.com/stepler/Screenshot/master/worker/worker.py'},
+    {'file': r'worker_base.py', 'url': r'https://raw.github.com/stepler/Screenshot/master/worker/worker_base.py'},
+    {'file': r'celeryconfig.py', 'url': r'https://raw.github.com/stepler/Screenshot/master/worker/celeryconfig.py'},
+    {'file': r'setup.worker.reg', 'url': r'https://raw.github.com/stepler/Screenshot/master/worker/setup.worker.reg'},
+]

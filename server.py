@@ -145,7 +145,7 @@ class MainHandler(BaseHandler):
         ws_conf = ScreenshotConfigs().GiveWebSocketConf()
         
         loader = tornado.template.Loader(os.path.join(APP_DIR, 'templates'))
-        self.set_cookie('socket_id', uuid.uuid4().hex)
+        self.set_cookie('socket_id', self.userId)
         self.write(loader.load("index.html").generate(mongo_conf = mongo_conf, ws_host=ws_conf['host']))
 
 
@@ -347,8 +347,7 @@ class ImageHandler(BaseHandler):
         else:
             self.set_header("Content-Type", 'image/jpeg')
             self.write(screen['images'][imgageType])
-        
-        self.finish()
+            self.finish()
 
 #
 class WebSocket(BaseHandler, websocket.WebSocketHandler):
@@ -373,7 +372,6 @@ class UpdateWorkerHandler(BaseHandler):
     def get(self):
         UpdateWorkerTask()
 
-@task
 def addTask(rowId, pageUrl, pageId, system, browser, version, resolutionId, socket_id):
     """
     смотрим system (win7, winxp, ubuntu)
@@ -381,7 +379,7 @@ def addTask(rowId, pageUrl, pageId, system, browser, version, resolutionId, sock
     """
     
     # опции для задачи
-    options = [rowId, pageUrl, pageId, browser, resolutionId, socket_id]
+    options = [rowId, pageUrl, pageId, system, browser, version, resolutionId, socket_id]
     
     logging.info("QUEUES %s_%s_%s" % (system, browser,version))
     
@@ -393,7 +391,6 @@ def addTask(rowId, pageUrl, pageId, system, browser, version, resolutionId, sock
     else:
         application.tasksPool[socket_id] = [asyncResult]
 
-@task
 def UpdateWorkerTask():
     """
     задача: Обновление worker'а
@@ -406,7 +403,9 @@ def checkTasksState():
     for socket_id in application.tasksPool:
         for task in application.tasksPool[socket_id]:
             if task.status == 'SUCCESS':
-                #logging.info("RESULT SUCCESSFULL: {0}".format(task.result))
+                logging.info("RESULT SUCCESSFULL: %s %s" % (socket_id, task.result))
+                print socket_id
+                print application.webSocketsPool[socket_id]
                 if application.webSocketsPool.has_key(socket_id):
                     application.webSocketsPool[socket_id].write_message(task.result)
                 application.tasksPool[socket_id].remove(task)
