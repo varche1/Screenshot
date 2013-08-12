@@ -10,25 +10,26 @@ Ext.define('Screener.view.screen.Edit', {
     initComponent: function() {
         
         var Win7 = getBrowserGroup('Windows 7', 'win7', false, [
-            ['IE',       'ie', ['6', '7', '8', '9']],
-            ['Firefox',  'ff', ['3.6', '4', '6', '9', '10']],
-            ['Opera',    'op', ['10.5', '11']],
+            ['IE',       'ie', ['7', '8', '9']],
+            ['Firefox',  'ff', ['3.6', '9']],
+            ['Opera',    'op', ['10.10', '11']],
             ['Chrome',   'ch', ['16']],
             ['Safari',   'sf', ['5']]
         ]);
         
-        var WinXP = getBrowserGroup('Windows XP', 'winXP', true, [
-            ['IE',       'ie', ['6', '7', '8']],
-            ['Firefox',  'ff', ['3.6', '4']],
-            ['Opera',    'op', ['10.5', '11']],
+        var WinXP = getBrowserGroup('Windows XP', 'winxp', true, [
+            ['IE',       'ie', ['7', '8']],
+            ['Firefox',  'ff', ['3.6', '9']],
+            ['Opera',    'op', ['10.10', '11']],
             ['Chrome',   'ch', ['12']]
         ]);
         
-        var Ubuntu = getBrowserGroup('Ubuntu 11.10', 'ub11.10', true, [
+        /*
+        var Ubuntu = getBrowserGroup('Ubuntu 11.10', 'ub', true, [
             ['Firefox',  'ff', ['3.6', '4']],
             ['Chrome',   'ch', ['16']]
         ]);
-        
+        */
         var Res = {
             xtype: 'fieldset',
             title: 'Разрешение экрана',
@@ -67,7 +68,7 @@ Ext.define('Screener.view.screen.Edit', {
             defaults: {
                 margins: '0 0 10 0'
             },
-            items: [Res, Win7, WinXP, Ubuntu]
+            items: [Res, Win7, WinXP]
         }];
 
         this.buttons = [{

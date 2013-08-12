@@ -23,14 +23,12 @@ Ext.define('Screener.view.site.Edit', {
                 xtype: 'textfield',
                 name : 'title',
                 fieldLabel: 'Title',
-                width: 400,
-                value: 'webpp.ru'
+                width: 400
             },{
                 xtype: 'textfield',
                 name : 'url',
                 fieldLabel: 'URL',
-                width: 400,
-                value: 'http://www.webpp.ru'
+                width: 400
             }]
         }];
 
