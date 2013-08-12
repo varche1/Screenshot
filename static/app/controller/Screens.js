@@ -11,25 +11,53 @@ Ext.define('Screener.controller.Screens', {
     }],
     
     tpl: Ext.create('Ext.XTemplate',
-        '<tpl for=".">',
-            '<div class="screenshot {id}">',
+        '<tpl for="ready">',
+            '<div class="screenshot {browser} {system}" id="{_id}">',
                 '<span><b class="browser browser-{browser}">{version}</b></span>',
                 '<span>{resolution}</span>',
                 '<a href="{imageUrl}" target="_blank">',
                     '<img src="{thumbUrl}" />',
                 '</a>',
             '</div>',
+        '</tpl>',
+        '<tpl for="wait">',
+            '<div class="screenshot {browser} {system}" id="{_id}">',
+                '<span><b class="browser browser-{browser}">{version}</b></span>',
+                '<span>{resolution}</span>',
+                '<img src="{thumbUrl}" />',
+            '</div>',
+        '</tpl>',
+        '<tpl for="update">',
+            '<span><b class="browser browser-{browser}">{version}</b></span>',
+            '<span>{resolution}</span>',
+            '<a href="{imageUrl}" target="_blank">',
+                '<img src="{thumbUrl}" />',
+            '</a>',
         '</tpl>'
     ),
     
     init: function() {
-        this.control({});
+        this.control({
+            'screenlist button[action=filter-os]': {
+                click: this.filterScreens
+            },
+            'screenlist button[action=filter-browser]': {
+                click: this.filterScreens
+            },
+        });
         
         this.application.on({
             screenload: this.onScreensLoad,
             screenUpdate: this.onScreensUpdate,
             scope: this
         });
+    },
+    
+    filterScreens: function(button) {
+        var list = Ext.DomQuery.select('.'+button.value);
+        var action = !button.pressed ? 'show' : 'hide' ;
+        for (i=0,m=list.length; i<m; i++)
+            Ext.get(list[i]).setVisibilityMode(2)[action]();
     },
     
     onScreensLoad: function(page) {
@@ -42,7 +70,6 @@ Ext.define('Screener.controller.Screens', {
             url: '/screen',
             params: { page: page.get('_id') },
             success: function(response){
-                //url: '/image?page=%p%&type=%t%'.replace('%p%', data._id).replace('%t%', 'thumb')
                 (function(){
                     this.updateScreens(Ext.decode(response.responseText));
                 }).call(self)
@@ -51,27 +78,31 @@ Ext.define('Screener.controller.Screens', {
     },
     
     onScreensUpdate: function(data) {
-        //this.updateScreens(data);
-        log(data);
+        if (typeof(data) != 'object')
+            return;
+        
+        data = this.prepareData({results: [data]})
+        var self = this;
+        var view = this.getScreenList();
+        Ext.Object.each(data.ready, function(key, value) {
+            var screen = Ext.DomQuery.select('#'+value._id);
+            if (screen.length)
+                self.tpl.overwrite(screen[0], {'update':value});
+        });
     },
     
     prepareData: function(data)
     {
-        var result = {'all':[]};
+        var result = {'wait': [], 'ready': []};
         Ext.each(data.results, function(value, key) {
-            var system = value.browser.split('_');
-            if (!result[system[0]]) result[system[0]] = [];
-            var data = {
-                id          : value._id,
-                os          : system[0],
-                browser     : system[1],
-                version     : system[2],
-                resolution  : value.resolution.replace('_', '*'),
-                imageUrl    : '/image?page=%p%&type=normal'.replace('%p%', value._id),
-                thumbUrl    : '/image?page=%p%&type=thumb'.replace('%p%', value._id)
-            };
-            result[system[0]].push(data);
-            result['all'].push(data);
+            value.resolution = value.resolution.replace('_', '*');
+            value.imageUrl   = '/image?screen=%s%&type=medium&%rh%'.replace('%s%', value._id).replace('%rh%', value.random_hex);
+            value.thumbUrl   = '/image?screen=%s%&type=thumbnail&%rh%'.replace('%s%', value._id).replace('%rh%', value.random_hex);
+            
+            if (value.ready)
+                result.ready.push(value);
+            else
+                result.wait.push(value);
         });
         return result;
     },
@@ -81,10 +112,6 @@ Ext.define('Screener.controller.Screens', {
         data = this.prepareData(data)
         var self = this;
         var view = this.getScreenList();
-        Ext.Object.each(data, function(key, value) {
-            var conteiner = view.down('#screen-'+key);
-            if (conteiner && conteiner.body)
-                self.tpl.overwrite(conteiner.body, value);
-        });
+        self.tpl.overwrite(view.body, data);
     }
 });

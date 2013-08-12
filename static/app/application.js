@@ -5,6 +5,7 @@ Ext.application({
     
     controllers: ['Sites', 'Pages', 'Screens'],
     launch: function() {
+        var self = this;
         Ext.create('Ext.Viewport', {
             layout: 'border',
             title: 'Ext Layout Browser',
@@ -12,8 +13,9 @@ Ext.application({
                 xtype: 'box',
                 id: 'header',
                 region: 'north',
-                html: '<h1> Ext.Layout.Browser</h1>',
-                height: 30
+                margins: '5 0 0 10',
+                html: '<h1>Web-shots.net</h1>',
+                height: 20
             },{
                 layout: 'fit',
                 id: 'layout-browser',
@@ -46,24 +48,16 @@ Ext.application({
         });
         
         //WebSockets
-        var socket = new WebSocket("ws://" + "web-shots.net:8888" + "/websocket");
-        
-        console.log(socket);
-        
-        socket.onopen = function(evt) {
-            console.log('Connection open ...');
-            socket.send(Ext.util.Cookies.get("socket_id"));
-        };
-        
-        socket.onclose = function(evt) {
-            console.log('Connection close ...');
-        };
-        
-        socket.onmessage = function(message) {
-           console.log('Message: ' + message);
-           
-           //
-        };
+        if (WS_HOST) {
+            var socket = new WebSocket("ws://" + WS_HOST + "/websocket");
+            socket.onopen = function(evt) {
+                socket.send('init connection');
+            };
+            socket.onmessage = function(message) {
+                log(message)
+                self.fireEvent('screenUpdate', Ext.decode(message.data));
+            };
+        }
     }
 });
 var Tools = {

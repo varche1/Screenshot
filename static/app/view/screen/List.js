@@ -1,56 +1,63 @@
 Ext.define('Screener.view.screen.List', {
-    extend: 'Ext.tab.Panel',
+    extend: 'Ext.Panel',
     alias: 'widget.screenlist',
     
-    //store: 'Sites',
-    
-    //title: 'Screens',
-    defaults :{
-        autoScroll: true,
-        bodyPadding: 5
-    },
-    store: 'Pages',
+    autoScroll: true,
+    bodyPadding: 5,
     initComponent: function() {
-        this.items = [{
-            title: 'All',
-            border: false,
-            id: 'screen-all'
-        },{
-            title: 'Win7',
-            border: false,
-            id: 'screen-win7'
-        },{
-            title: 'WinXP',
-            border: false,
-            id: 'screen-winxp'
-        },{
-            title: 'Ubuntu',
-            border: false,
-            id: 'screen-ubuntu'
-        }
-            /*,
-             url: '/screen?page=4f57ee94c6a8080824000001',
-            {
-            title: 'All',
-            bodyPadding: 10,
-            id: 'screen-all',
-            items: dataview
-        },{
-            title: 'WinXP',
-            bodyPadding: 10,
-            id: 'screen-winxp',
-            items: dataview
-        },{
-            title: 'Win7',
-            bodyPadding: 10,
-            id: 'screen-win7',
-            items: dataview
-        },{
-            title: 'Ubuntu',
-            bodyPadding: 10,
-            id: 'screen-ubuntu',
-            items: dataview
-        }*/]
+        this.dockedItems = [{
+            xtype: 'toolbar',
+            items: [{
+                xtype: 'button',
+                text:'Win7',
+                iconCls: 'os-win7',
+                action: 'filter-os',
+                value: 'win7',
+                enableToggle: true
+            },{
+                xtype: 'button',
+                text:'WinXP',
+                iconCls: 'os-winxp',
+                action: 'filter-os',
+                value: 'winxp',
+                enableToggle: true
+            },'-',{
+                xtype: 'button',
+                text: 'Firefox',
+                iconCls: 'browser-ff',
+                action: 'filter-browser',
+                value: 'ff',
+                enableToggle: true
+            },{
+                xtype: 'button',
+                text: 'IE',
+                iconCls: 'browser-ie',
+                action: 'filter-browser',
+                value: 'ie',
+                enableToggle: true
+            },{
+                xtype: 'button',
+                text: 'Opera',
+                iconCls: 'browser-op',
+                action: 'filter-browser',
+                value: 'op',
+                enableToggle: true
+            },{
+                xtype: 'button',
+                text: 'Chrome',
+                iconCls: 'browser-ch',
+                action: 'filter-browser',
+                value: 'ch',
+                enableToggle: true
+            },{
+                xtype: 'button',
+                text: 'Safari',
+                iconCls: 'browser-sf',
+                action: 'filter-browser',
+                value: 'sf',
+                enableToggle: true
+            }]
+        }];
         
         this.callParent();
     }

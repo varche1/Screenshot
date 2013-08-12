@@ -21,6 +21,7 @@ class ScreenshotConfigs():
         
         try:
             tornado['checktacks_time'] = self.config.get('Tornado', 'TORNADO_CHECKTASKS_TIME')
+            tornado['checkworkers_time'] = self.config.get('Tornado', 'TORNADO_CHECKWORKERS_TIME')
         except ConfigParser.NoOptionError:
             tornado['checktacks_time'] = None
 
@@ -47,3 +48,12 @@ class ScreenshotConfigs():
             mongo['database'] = None
 
         return mongo
+    
+    def GiveWebSocketConf(self):
+        conf = {}
+        try:
+            conf['host'] = self.config.get('WebSocket', 'WS_HOST')
+        except ConfigParser.NoOptionError:
+            conf['host'] = None
+        
+        return conf
